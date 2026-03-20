@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Raccoon Coin</title>
+    <title>Raccoon Coin Pro</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         :root {
-            --yellow: #fde047; --crit: #ff3b30;
+            --yellow: #fde047; --crit: #ff3b30; --blue: #3b82f6;
             --glass: rgba(255, 255, 255, 0.08); --border: rgba(255, 255, 255, 0.12);
             --bg: #000;
         }
@@ -18,112 +18,91 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; user-select: none; }
         body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: var(--bg); color: #fff; height: 100dvh; overflow: hidden; display: flex; justify-content: center; }
 
-        /* Дебаг панель (прихована за замовчуванням) */
-        #debug-log { position: fixed; top: 0; left: 0; width: 100%; z-index: 9999; background: #ff3b30; color: white; font-size: 12px; padding: 8px; text-align: center; display: none; font-weight: bold; }
+        @keyframes appEntry { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        #app { width: 100%; max-width: 500px; height: 100%; display: flex; flex-direction: column; position: relative; opacity: 0; animation: appEntry 0.8s ease-out forwards; }
 
-        /* АНІМАЦІЯ ВХОДУ В ГРУ */
-        @keyframes appEntry {
-            from { opacity: 0; transform: translateY(20px); filter: blur(10px); }
-            to { opacity: 1; transform: translateY(0); filter: blur(0); }
-        }
+        /* HEADER ICONS */
+        .header-tools { position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; align-items: center; z-index: 100; }
+        .tool-icon { width: 32px; height: 32px; cursor: pointer; transition: 0.2s; }
+        .tool-icon:active { transform: scale(0.8); }
 
-        #app { 
-            width: 100%; max-width: 500px; height: 100%; display: flex; flex-direction: column; position: relative;
-            opacity: 0; 
-            animation: appEntry 0.8s ease-out forwards;
-            animation-delay: 0.1s;
-        }
-
-        /* НАВІГАЦІЯ */
+        /* NAV */
         nav { position: absolute; bottom: 0; left: 0; width: 100%; height: 85px; background: rgba(10, 10, 10, 0.7); border-top: 1px solid var(--border); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
-        .nav-grid { display: flex; height: 100%; position: relative; width: 100%; }
-        .nav-item { flex: 1; display: flex; align-items: center; justify-content: center; z-index: 5; opacity: 0.3; transition: 0.3s; cursor: pointer; }
+        .nav-grid { display: flex; height: 100%; position: relative; }
+        .nav-item { flex: 1; display: flex; align-items: center; justify-content: center; opacity: 0.3; transition: 0.3s; }
         .nav-item.active { opacity: 1; }
-        .nav-item img { width: 28px; height: 28px; }
-        .capsule { position: absolute; width: 20%; height: 55px; top: 15px; background: rgba(255, 255, 255, 0.12); border-radius: 20px; transition: transform 0.4s cubic-bezier(0.18, 0.9, 0.3, 1.1); z-index: 1; border: 1px solid rgba(255,255,255,0.05); }
+        .nav-item img { width: 26px; height: 26px; }
+        .capsule { position: absolute; width: 20%; height: 55px; top: 15px; background: rgba(255, 255, 255, 0.12); border-radius: 20px; transition: 0.4s cubic-bezier(0.18, 0.9, 0.3, 1.1); }
 
-        /* КОНТЕНТ */
+        /* PAGES */
         .content { flex: 1; overflow-y: auto; padding-bottom: 100px; scrollbar-width: none; }
         .page { display: none; flex-direction: column; padding: 20px; animation: pageIn 0.3s ease-out; }
         .page.active { display: flex; }
-        @keyframes pageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pageIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 
-        /* ГОЛОВНА */
-        #score { font-size: 58px; font-weight: 900; color: var(--yellow); text-align: center; margin: 20px 0; text-shadow: 0 0 20px rgba(253,224,71,0.2); }
-        .coin-box { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 250px; }
-        .coin-img { width: 75vw; max-width: 300px; transition: transform 0.05s; cursor: pointer; z-index: 10; filter: drop-shadow(0 0 15px rgba(0,0,0,0.5)); }
+        #score { font-size: 52px; font-weight: 900; color: var(--yellow); text-align: center; margin: 30px 0 10px; }
+        .coin-box { flex: 1; display: flex; align-items: center; justify-content: center; }
+        .coin-img { width: 70vw; max-width: 280px; transition: 0.05s; cursor: pointer; }
         .coin-img:active { transform: scale(0.92); }
 
-        /* КАРТКИ ТА ЕНЕРГІЯ */
-        .card { background: var(--glass); border: 1px solid var(--border); border-radius: 24px; padding: 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s; }
-        .btn-ui { background: var(--yellow); color: #000; border: none; padding: 12px 18px; border-radius: 14px; font-weight: 800; cursor: pointer; }
-        .btn-ui:disabled { opacity: 0.2; cursor: not-allowed; }
-        .energy-bar { width: 100%; height: 10px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-top: 10px; overflow: hidden; }
-        #bar-fill { height: 100%; background: var(--yellow); width: 100%; transition: width 0.3s; }
+        .card { background: var(--glass); border: 1px solid var(--border); border-radius: 20px; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-ui { background: var(--yellow); color: #000; border: none; padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 14px; }
+        .btn-ui:disabled { opacity: 0.3; }
 
-        /* АНІМАЦІЯ КЛІКІВ */
-        .tap-pop { position: fixed; pointer-events: none; font-weight: 900; z-index: 6000; animation: tapAnim 0.8s ease-out forwards; white-space: nowrap;}
-        @keyframes tapAnim { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translate(-50%, -100%) scale(1.3); } 100% { transform: translate(var(--tx), -200px) scale(1); opacity: 0; } }
+        /* TOP LIST MODAL */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; display: none; flex-direction: column; padding: 30px 20px; backdrop-filter: blur(15px); }
+        .top-item { display: flex; align-items: center; gap: 15px; padding: 12px; border-bottom: 1px solid var(--border); }
+        .top-rank { width: 25px; font-weight: 900; color: var(--yellow); }
+        .top-avatar { width: 40px; height: 40px; background: var(--glass); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid var(--border); }
 
-        /* БОНУС ВІКНО */
-        #bonus-win { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 5000; display: none; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); }
+        .tap-pop { position: fixed; pointer-events: none; font-weight: 900; z-index: 6000; animation: tapAnim 0.8s ease-out forwards; }
+        @keyframes tapAnim { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translate(-50%, -100%) scale(1.2); } 100% { transform: translate(var(--tx), -200px) scale(1); opacity: 0; } }
+
+        #bonus-win { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 5000; display: none; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
-<div id="debug-log">Помилка бази даних! Перевір конфігурацію.</div>
-
 <div id="app">
+    <div class="header-tools">
+        <img src="https://i.ibb.co/dwcQhshq/top-arrow-1f51d.png" class="tool-icon" onclick="openTop()">
+        <div onclick="openBonus()" style="position:relative; cursor:pointer;">
+            <img src="https://i.ibb.co/6ctcw0gn/trophy-1f3c6.png" class="tool-icon" style="width:30px;">
+            <small id="b-limit" style="position:absolute; bottom:-5px; right:-5px; background:var(--crit); color:white; font-size:10px; padding:2px 5px; border-radius:10px; font-weight:900;">3</small>
+        </div>
+    </div>
+
     <div class="content">
         <div class="page active" id="p0">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <b id="username" style="opacity:0.4; font-size:12px; letter-spacing:1px;">ЗАВАНТАЖЕННЯ...</b>
-                <div onclick="openBonus()" style="cursor:pointer; font-size:24px;">🎁 <small id="b-limit" style="font-size:14px;">3/3</small></div>
-            </div>
+            <div style="margin-top:20px;"><b id="username" style="opacity:0.4; font-size:12px;">ЗАВАНТАЖЕННЯ...</b></div>
             <div id="score">0</div>
             <div class="coin-box">
                 <img id="coin" class="coin-img" src="https://i.ibb.co/fYzVqbLB/file-00000000cb70720a92f5b0192d2b39a4.png">
             </div>
             <div class="card" style="display:block">
-                <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:900;">
-                    <span>⚡ ЕНЕРГІЯ</span>
-                    <span id="energy-txt">1000/1000</span>
+                <div style="display:flex; justify-content:space-between; font-size:11px; font-weight:900; margin-bottom:8px;">
+                    <span>⚡ ЕНЕРГІЯ</span> <span id="energy-txt">1000/1000</span>
                 </div>
-                <div class="energy-bar"><div id="bar-fill"></div></div>
+                <div style="width:100%; height:8px; background:rgba(255,255,255,0.05); border-radius:10px; overflow:hidden;">
+                    <div id="bar-fill" style="height:100%; background:var(--yellow); width:100%; transition:0.3s;"></div>
+                </div>
             </div>
         </div>
 
-        <div class="page" id="p1">
-            <h2 style="margin-bottom:20px;">Магазин</h2>
-            <div id="shop-list"></div>
-        </div>
+        <div class="page" id="p1"><h2 style="margin-bottom:20px;">Магазин</h2><div id="shop-list"></div></div>
 
         <div class="page" id="p2">
             <h2 style="margin-bottom:20px;">Друзі</h2>
             <div class="card" style="display:block; text-align:center;">
-                <h3 style="color:var(--yellow); margin-bottom:10px;">Запроси друга</h3>
-                <p style="opacity:0.7; font-size:14px; margin-bottom:15px; line-height:1.4;">
-                    Отримай <b style="color:var(--yellow)">10,000 монет</b> за друга!<br>
-                    Твій друг отримає <b style="color:var(--yellow)">5,000 монет</b>.
-                </p>
-                <div id="ref-link-display" style="background: rgba(0,0,0,0.4); border: 1px dashed var(--border); padding: 10px; border-radius: 8px; font-size: 11px; margin-bottom: 15px; word-break: break-all; color: #aaa;">
-                    ...
-                </div>
-                <button class="btn-ui" onclick="inviteFriend()" style="width:100%; font-size:16px; margin-bottom:8px;">🚀 Надіслати</button>
-                <button class="btn-ui" onclick="copyRefLink()" style="width:100%; font-size:16px; background:rgba(255,255,255,0.1); color:#fff;">📋 Скопіювати</button>
+                <p style="margin-bottom:15px; opacity:0.8;">Запрошуй друзів та отримуй 10,000 монет!</p>
+                <button class="btn-ui" onclick="inviteFriend()" style="width:100%;">🚀 ЗАПРОСИТИ</button>
             </div>
-            <div class="card"><span>Запрошено друзів:</span><b id="friends-count" style="color:var(--yellow); font-size:20px;">0</b></div>
+            <div id="friends-list"></div>
         </div>
 
-        <div class="page" id="p3">
-            <h2 style="margin-bottom:20px;">Квести</h2>
-            <div id="quest-list"></div>
-        </div>
+        <div class="page" id="p3"><h2 style="margin-bottom:20px;">Квести</h2><div id="quest-list"></div></div>
 
-        <div class="page" id="p4">
-            <h2 style="margin-bottom:20px;">Статистика</h2>
-            <div id="stat-list" style="display:grid; gap:6px;"></div>
-        </div>
+        <div class="page" id="p4"><h2 style="margin-bottom:20px;">Статистика</h2><div id="stat-list"></div></div>
     </div>
 
     <nav>
@@ -138,124 +117,135 @@
     </nav>
 </div>
 
+<div id="top-modal" class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+        <h2 style="color:var(--yellow)">ТОП-10 МАГНАТІВ</h2>
+        <b onclick="closeTop()" style="font-size:24px; cursor:pointer;">✕</b>
+    </div>
+    <div id="top-content"></div>
+</div>
+
 <div id="bonus-win">
     <div id="b-ready" style="text-align:center;">
         <h1 style="font-size:40px;">ГОТОВИЙ?</h1>
-        <p style="opacity:0.6; margin:15px 0 30px;">Множник x10 на 7.5 секунд</p>
+        <p style="opacity:0.6; margin:20px 0;">x10 МОНЕТ НА 7.5 СЕКУНД</p>
         <button class="btn-ui" onclick="startBonusNow()" style="width:200px; height:60px;">ПОЧАТИ</button>
     </div>
     <div id="b-active" style="display:none; text-align:center; width:100%; height:100%;">
-        <div class="b-timer" id="b-timer" style="margin-top: 20vh; font-size:100px; font-weight:900; color:var(--yellow);">7.5</div>
-        <div id="b-clicks" style="font-size:30px; font-weight:900; color:var(--yellow); margin-top:20px;">0</div>
+        <div id="b-timer" style="margin-top:20vh; font-size:80px; font-weight:900; color:var(--yellow);">7.5</div>
+        <div id="b-clicks" style="font-size:30px; margin-top:20px;">0</div>
         <div id="bonus-click-zone" style="position:absolute; inset:0; z-index:10;"></div>
     </div>
 </div>
 
 <script>
-    // ==========================================
-    // 1. КОНФІГУРАЦІЯ (Твої змінні вже тут!)
-    // ==========================================
-    const SB_URL = 'https://ohyagfbgaekifqrxvvks.supabase.co'; 
+    // --- ДАНІ ---
+    const SB_URL = 'https://ohyagfbgaekifqrxvvks.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oeWFnZmJnYWVraWZxcnh2dmtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Mjc2MzIsImV4cCI6MjA4OTUwMzYzMn0.VJhJcN3RaeJdZVsLKGU3NjLvCCdNTR5TA_Sp6jj1WKM';
-    const BOT_USERNAME = "raccoon_coin_tap_bot"; 
-    const APP_SHORT_NAME = "RACCOON_TAP_APP";
+    const db = supabase.createClient(SB_URL, SB_KEY);
 
-    // ==========================================
-    // 2. ІНІЦІАЛІЗАЦІЯ TELEGRAM
-    // ==========================================
-    const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
-    if (tg) { try { tg.expand(); tg.ready(); } catch(e) {} }
+    const tg = window.Telegram.WebApp;
+    const userId = tg.initDataUnsafe?.user?.id.toString() || "dev_888";
+    const userName = (tg.initDataUnsafe?.user?.first_name || "ГРАВЕЦЬ").toUpperCase();
 
-    const userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) 
-        ? tg.initDataUnsafe.user.id.toString() 
-        : "dev_user_" + Math.floor(Math.random() * 1000);
-        
-    const userName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) 
-        ? tg.initDataUnsafe.user.first_name.toUpperCase() 
-        : "ГРАВЕЦЬ";
-
-    document.getElementById('username').innerText = userName;
-
-    // ==========================================
-    // 3. СТАН ГРИ
-    // ==========================================
     let state = {
         score: 0, energy: 1000, max: 1000, power: 1,
-        totalClicks: 0, totalCrits: 0, totalEarned: 0, maxCrit: 0,
-        upgrades: 0, botLvl: 0, bonusLimit: 3, lastBonusDate: "", 
-        friends: 0, lvls: { tap: 1, energy: 1, bot: 0 }, doneQuests: []
+        totalClicks: 0, totalCrits: 0, totalEarned: 0,
+        bonusGames: 0, bonusEarned: 0, bonusLimit: 3, lastBonusDate: "",
+        friends: 0, upgrades: 0, botLvl: 0,
+        lvls: { tap: 1, energy: 1, bot: 0 },
+        doneQuests: []
     };
 
     let isB = false; let bc = 0;
-    const shopItems = [
-        { id: 'tap', n: 'Мульти-клік', b: 200 },
-        { id: 'energy', n: 'Енергетик', b: 500 },
-        { id: 'bot', n: 'Авто-бот', b: 2000 }
-    ];
+
     const quests = [
-        { id: 1, n: "Початок", d: "Зароби 1,000", t: 1000, type: "earned", r: 500 },
-        { id: 2, n: "Крит-машина", d: "Зроби 50 критів", t: 50, type: "crits", r: 2000 },
-        { id: 3, n: "Марафонець", d: "1,000 кліків", t: 1000, type: "clicks", r: 5000 }
+        { id: 1, n: "Перші кроки", d: "Зароби 1,000", t: 1000, type: "earned", r: 500 },
+        { id: 2, n: "Крит-майстер", d: "50 критів", t: 50, type: "crits", r: 2000 },
+        { id: 3, n: "Клікер", d: "5,000 кліків", t: 5000, type: "clicks", r: 10000 },
+        { id: 4, n: "Магнат", d: "Зароби 100,000", t: 100000, type: "earned", r: 50000 },
+        { id: 5, n: "Бонус-хантер", d: "Зіграй 5 бонусів", t: 5, type: "bonus", r: 15000 },
+        { id: 6, n: "Енерджайзер", d: "Май 3,000 енергії", t: 3000, type: "max_en", r: 20000 }
     ];
 
-    // ==========================================
-    // 4. SUPABASE
-    // ==========================================
-    const db = supabase.createClient(SB_URL, SB_KEY);
-
+    // --- ЛОГІКА ---
     async function loadData() {
-        try {
-            const { data } = await db.from('players').select('state').eq('id', userId).maybeSingle();
-            if (data && data.state) {
-                state = Object.assign(state, data.state);
-            } else {
-                const ref = (tg && tg.initDataUnsafe) ? tg.initDataUnsafe.start_param : null;
-                if(ref && ref !== userId) {
-                    state.score += 5000; state.totalEarned += 5000;
-                    rewardInviter(ref);
-                }
-            }
-            updateUI();
-        } catch(e) { console.error(e); updateUI(); }
-    }
-
-    async function rewardInviter(inviterId) {
-        try {
-            const { data } = await db.from('players').select('state').eq('id', inviterId).maybeSingle();
-            if(data && data.state) {
-                let s = data.state;
-                s.score += 10000; s.totalEarned += 10000; s.friends = (s.friends || 0) + 1;
-                await db.from('players').update({ state: s }).eq('id', inviterId);
-            }
-        } catch(e) {}
+        document.getElementById('username').innerText = userName;
+        const { data } = await db.from('players').select('state').eq('id', userId).maybeSingle();
+        if(data) state = Object.assign(state, data.state);
+        updateUI();
     }
 
     async function saveData() {
-        try { await db.from('players').upsert({ id: userId, state: state }); } catch(e) {}
+        // Зберігаємо в state і окрему колонку score_top для сортування в ТОП
+        await db.from('players').upsert({ 
+            id: userId, 
+            username: userName, 
+            state: state,
+            score_top: Math.floor(state.score) 
+        });
     }
 
-    // ==========================================
-    // 5. ЛОГІКА ТА АНІМАЦІЇ
-    // ==========================================
-    function nav(idx) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        document.getElementById(`p${idx}`).classList.add('active');
-        document.querySelectorAll('.nav-item')[idx].classList.add('active');
-        document.getElementById('capsule').style.transform = `translateX(${idx * 100}%)`;
+    function updateUI() {
+        const today = new Date().toLocaleDateString();
+        if(state.lastBonusDate !== today) { state.bonusLimit = 3; state.lastBonusDate = today; }
+
+        document.getElementById('score').innerText = Math.floor(state.score).toLocaleString();
+        document.getElementById('energy-txt').innerText = `${Math.floor(state.energy)}/${state.max}`;
+        document.getElementById('bar-fill').style.width = (state.energy/state.max)*100 + "%";
+        document.getElementById('b-limit').innerText = state.bonusLimit;
+
+        // Магазин
+        document.getElementById('shop-list').innerHTML = [
+            { id: 'tap', n: 'Мульти-клік', b: 200 },
+            { id: 'energy', n: 'Енергетик', b: 500 },
+            { id: 'bot', n: 'Авто-бот', b: 2000 }
+        ].map(i => {
+            const cost = Math.floor(i.b * Math.pow(2.4, state.lvls[i.id]));
+            return `<div class="card">
+                <div><b>${i.n}</b><br><small>Lvl ${state.lvls[i.id]}</small></div>
+                <button class="btn-ui" onclick="buy('${i.id}', ${cost})">💰 ${cost.toLocaleString()}</button>
+            </div>`;
+        }).join('');
+
+        // Квести
+        document.getElementById('quest-list').innerHTML = quests.map(q => {
+            let cur = 0;
+            if(q.type === 'earned') cur = state.totalEarned;
+            if(q.type === 'clicks') cur = state.totalClicks;
+            if(q.type === 'crits') cur = state.totalCrits;
+            if(q.type === 'bonus') cur = state.bonusGames;
+            if(q.type === 'max_en') cur = state.max;
+            const done = state.doneQuests.includes(q.id);
+            return `<div class="card">
+                <div><b>${q.n}</b><br><small>${q.d} (${Math.min(cur, q.t).toLocaleString()}/${q.t.toLocaleString()})</small></div>
+                <button class="btn-ui" onclick="claim(${q.id}, ${q.r})" ${cur < q.t || done ? 'disabled' : ''}>${done?'✅':'🎁 '+q.r}</button>
+            </div>`;
+        }).join('');
+
+        // Розширена Статистика
+        const stats = [
+            ["Всього видобуто", state.totalEarned],
+            ["Кліки", state.totalClicks],
+            ["Крити", state.totalCrits],
+            ["Виграно в бонусах", state.bonusEarned],
+            ["Зіграно бонусів", state.bonusGames],
+            ["Сила тапу", state.power],
+            ["Рівень бота", state.botLvl],
+            ["Запрошено друзів", state.friends]
+        ];
+        document.getElementById('stat-list').innerHTML = stats.map(s => `
+            <div class="card" style="padding:10px 15px;"><span>${s[0]}</span><b>${Math.floor(s[1]).toLocaleString()}</b></div>
+        `).join('');
     }
 
-    function spawnParticle(x, y, txt, type) {
+    // --- КЛІКИ ТА АНІМАЦІЯ ---
+    function spawnPop(x, y, txt, color) {
         const d = document.createElement('div');
         d.className = 'tap-pop'; d.innerText = txt;
         d.style.left = x + 'px'; d.style.top = y + 'px';
-        d.style.setProperty('--tx', (Math.random()*120 - 60) + 'px');
-        
-        if(type === 'crit' || type === 'cost') { 
-            d.style.color = 'var(--crit)'; d.style.fontSize = '38px'; 
-        } else {
-            d.style.color = '#fff'; d.style.fontSize = '32px';
-        }
+        d.style.color = color || '#fff';
+        d.style.setProperty('--tx', (Math.random()*100-50)+'px');
         document.body.appendChild(d);
         setTimeout(() => d.remove(), 700);
     }
@@ -263,77 +253,41 @@
     function handleTap(e) {
         if(isB) return;
         e.preventDefault();
-        const pts = e.touches ? e.touches : [{ clientX: e.clientX, clientY: e.clientY }];
+        const pts = e.touches ? e.touches : [{clientX: e.clientX, clientY: e.clientY}];
         for(let p of pts) {
             if(state.energy >= 1) {
                 let crit = Math.random() < 0.08;
                 let val = state.power * (crit ? 5 : 1);
-                state.score += val; state.totalEarned += val; state.energy--;
+                state.score += val; state.totalEarned += val; state.energy--; state.totalClicks++;
                 if(crit) state.totalCrits++;
-                spawnParticle(p.clientX, p.clientY, `+${val}`, crit ? 'crit' : 'normal');
+                spawnPop(p.clientX, p.clientY, `+${val}`, crit ? 'var(--crit)' : '#fff');
             }
         }
         updateUI();
     }
 
-    function handleBuy(e) {
-        if (!e.target.classList.contains('buy-btn')) return;
-        const id = e.target.dataset.itemId;
-        const cost = parseInt(e.target.dataset.cost);
+    // --- МАГАЗИН ТА БОНУС ---
+    function buy(id, cost) {
         if(state.score >= cost) {
             state.score -= cost; state.lvls[id]++; state.upgrades++;
-            if(id === 'tap') state.power++;
-            if(id === 'energy') state.max += 500;
-            if(id === 'bot') state.botLvl++;
-            spawnParticle(e.clientX || e.touches[0].clientX, e.clientY || e.touches[0].clientY, `-${cost.toLocaleString()}`, 'cost');
+            if(id==='tap') state.power++; if(id==='energy') state.max += 500; if(id==='bot') state.botLvl++;
             updateUI(); saveData();
         }
     }
 
-    function updateUI() {
-        document.getElementById('score').innerText = Math.floor(state.score).toLocaleString();
-        document.getElementById('energy-txt').innerText = `${Math.floor(state.energy)}/${state.max}`;
-        document.getElementById('bar-fill').style.width = (state.energy/state.max)*100 + "%";
-        document.getElementById('b-limit').innerText = `${state.bonusLimit}/3`;
-        document.getElementById('ref-link-display').innerText = `https://t.me/${BOT_USERNAME}/${APP_SHORT_NAME}?startapp=${userId}`;
-        document.getElementById('friends-count').innerText = state.friends || 0;
-
-        document.getElementById('shop-list').innerHTML = shopItems.map(i => {
-            const cost = Math.floor(i.b * Math.pow(2.4, state.lvls[i.id]));
-            return `<div class="card">
-                <div><b>${i.n}</b><br><small>Lvl ${state.lvls[i.id]}</small></div>
-                <button class="btn-ui buy-btn" data-item-id="${i.id}" data-cost="${cost}" ${state.score < cost ? 'disabled' : ''}>💰 ${cost.toLocaleString()}</button>
-            </div>`;
-        }).join('');
-
-        document.getElementById('quest-list').innerHTML = quests.map(q => {
-            const cur = q.type === 'earned' ? state.totalEarned : state.totalClicks;
-            const isDone = state.doneQuests.includes(q.id);
-            return `<div class="card">
-                <div><b>${q.n}</b><br><small>${q.d}</small></div>
-                <button class="btn-ui" onclick="claim(${q.id}, ${q.r})" ${cur < q.t || isDone ? 'disabled' : ''}>${isDone ? '✅' : '🎁 '+q.r}</button>
-            </div>`;
-        }).join('');
-
-        const st = [["Баланс", Math.floor(state.score)], ["Кліки", state.totalClicks], ["Сила", state.power], ["Друзі", state.friends]];
-        document.getElementById('stat-list').innerHTML = st.map(s => `<div class="card"><span>${s[0]}</span><b>${s[1]}</b></div>`).join('');
+    function claim(id, r) {
+        state.score += r; state.totalEarned += r; state.doneQuests.push(id);
+        updateUI(); saveData();
     }
 
-    // Реферальні функції
-    function inviteFriend() {
-        const url = `https://t.me/share/url?url=https://t.me/${BOT_USERNAME}/${APP_SHORT_NAME}?startapp=${userId}&text=Грай зі мною!`;
-        if(tg) tg.openTelegramLink(url); else window.open(url);
-    }
-    function copyRefLink() {
-        const link = `https://t.me/${BOT_USERNAME}/${APP_SHORT_NAME}?startapp=${userId}`;
-        navigator.clipboard.writeText(link);
-        if(tg) tg.showAlert("Скопійовано!");
-    }
-
-    // Бонус
     function openBonus() {
-        if(state.bonusLimit > 0) document.getElementById('bonus-win').style.display = 'flex';
+        if(state.bonusLimit > 0) {
+            document.getElementById('bonus-win').style.display = 'flex';
+            document.getElementById('b-ready').style.display = 'block';
+            document.getElementById('b-active').style.display = 'none';
+        } else { tg.showAlert("Спробуй завтра!"); }
     }
+
     function startBonusNow() {
         document.getElementById('b-ready').style.display = 'none';
         document.getElementById('b-active').style.display = 'block';
@@ -344,28 +298,74 @@
             if(t <= 0) { clearInterval(itv); finishBonus(); }
         }, 100);
     }
+
     function finishBonus() {
         let win = bc * state.power * 10;
-        state.score += win; state.bonusLimit--; isB = false;
+        state.score += win; 
+        state.totalEarned += win; 
+        state.bonusEarned += win;
+        state.bonusGames++; 
+        state.bonusLimit--;
+        isB = false;
         document.getElementById('bonus-win').style.display = 'none';
+        tg.showAlert(`Виграш: ${win.toLocaleString()}!`);
         updateUI(); saveData();
     }
 
-    // Події
-    const coin = document.getElementById('coin');
-    coin.addEventListener('touchstart', handleTap, {passive: false});
-    coin.addEventListener('mousedown', handleTap);
-    document.getElementById('shop-list').addEventListener('click', handleBuy);
+    // --- ТОП-10 ---
+    async function openTop() {
+        document.getElementById('top-modal').style.display = 'flex';
+        document.getElementById('top-content').innerHTML = "<p style='text-align:center;'>Завантаження...</p>";
+        
+        try {
+            // Беремо топ 10 за колонкою score_top
+            const { data } = await db.from('players').select('username, score_top').order('score_top', {ascending: false}).limit(10);
+            
+            let html = "";
+            for(let i=0; i<10; i++) {
+                const p = data && data[i] ? data[i] : { username: "---", score_top: 0 };
+                html += `
+                    <div class="top-item">
+                        <div class="top-rank">#${i+1}</div>
+                        <div class="top-avatar">${p.username[0] || '?'}</div>
+                        <div style="flex:1"><b>${p.username}</b></div>
+                        <div style="color:var(--yellow)">${Math.floor(p.score_top).toLocaleString()}</div>
+                    </div>
+                `;
+            }
+            document.getElementById('top-content').innerHTML = html;
+        } catch(e) { console.error(e); }
+    }
+
+    function closeTop() { document.getElementById('top-modal').style.display = 'none'; }
+
+    function nav(idx) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        document.getElementById(`p${idx}`).classList.add('active');
+        document.querySelectorAll('.nav-item')[idx].classList.add('active');
+        document.getElementById('capsule').style.transform = `translateX(${idx * 100}%)`;
+    }
+
+    function inviteFriend() {
+        const url = `https://t.me/share/url?url=https://t.me/raccoon_coin_tap_bot/RACCOON_TAP_APP?startapp=${userId}&text=Грай зі мною!`;
+        tg.openTelegramLink(url);
+    }
+
+    // --- ПОДІЇ ---
+    document.getElementById('coin').addEventListener('touchstart', handleTap, {passive: false});
     document.getElementById('bonus-click-zone').addEventListener('touchstart', (e) => {
-        e.preventDefault(); bc++; document.getElementById('b-clicks').innerText = bc;
-        spawnParticle(e.touches[0].clientX, e.touches[0].clientY, "x10", 'crit');
-    });
+        e.preventDefault(); bc++; 
+        document.getElementById('b-clicks').innerText = bc;
+        spawnPop(e.touches[0].clientX, e.touches[0].clientY, "x10", 'var(--yellow)');
+    }, {passive: false});
 
     setInterval(() => {
         if(state.energy < state.max) state.energy = Math.min(state.max, state.energy + 2);
         if(state.botLvl > 0) { state.score += state.botLvl; state.totalEarned += state.botLvl; }
         updateUI();
     }, 1000);
+
     setInterval(saveData, 15000);
     loadData();
 </script>

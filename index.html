@@ -3,31 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Raccoon Coin Ultra</title>
+    <title>Raccoon Coin Economy</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
         :root {
-            --yellow: #fde047; --crit: #ff3b30; --gray: #4b5563;
+            --yellow: #fde047; --crit: #ff3b30; --gray: #2d2d2d;
             --glass: rgba(255, 255, 255, 0.08); --border: rgba(255, 255, 255, 0.12);
-            --bg: #00;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; user-select: none; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background: #000; color: #fff; height: 100dvh; overflow: hidden; display: flex; justify-content: center; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: #000; color: #fff; height: 100dvh; overflow: hidden; display: flex; justify-content: center; }
 
-        @keyframes appEntry { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        #app { width: 100%; max-width: 500px; height: 100%; display: flex; flex-direction: column; position: relative; opacity: 0; animation: appEntry 0.8s ease-out forwards; }
+        #app { width: 100%; max-width: 500px; height: 100%; display: flex; flex-direction: column; position: relative; }
 
         /* HEADER */
         .header-tools { position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; align-items: center; z-index: 100; }
         .tool-btn { font-size: 28px; cursor: pointer; transition: 0.2s; filter: drop-shadow(0 0 5px rgba(0,0,0,0.5)); }
-        .tool-btn:active { transform: scale(0.8); }
 
         /* NAV */
-        nav { position: absolute; bottom: 0; left: 0; width: 100%; height: 85px; background: rgba(10, 10, 10, 0.75); border-top: 1px solid var(--border); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
+        nav { position: absolute; bottom: 0; left: 0; width: 100%; height: 85px; background: rgba(15, 15, 15, 0.8); border-top: 1px solid var(--border); backdrop-filter: blur(20px); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
         .nav-grid { display: flex; height: 100%; position: relative; }
         .nav-item { flex: 1; display: flex; align-items: center; justify-content: center; opacity: 0.3; transition: 0.3s; }
         .nav-item.active { opacity: 1; }
@@ -40,24 +37,26 @@
         .page.active { display: flex; }
         @keyframes pageIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 
-        #score { font-size: 56px; font-weight: 900; color: var(--yellow); text-align: center; margin: 40px 0 10px; text-shadow: 0 0 20px rgba(253,224,71,0.3); }
+        #score { font-size: 56px; font-weight: 900; color: var(--yellow); text-align: center; margin: 45px 0 10px; text-shadow: 0 0 25px rgba(253,224,71,0.2); }
         .coin-box { flex: 1; display: flex; align-items: center; justify-content: center; }
-        .coin-img { width: 75vw; max-width: 300px; transition: 0.05s; cursor: pointer; }
-        .coin-img:active { transform: scale(0.92); }
+        .coin-img { width: 75vw; max-width: 280px; transition: 0.05s; cursor: pointer; }
+        .coin-img:active { transform: scale(0.9); }
 
         .card { background: var(--glass); border: 1px solid var(--border); border-radius: 24px; padding: 18px; margin-bottom: 12px; }
-        .btn-ui { background: var(--yellow); color: #000; border: none; padding: 12px 20px; border-radius: 14px; font-weight: 800; font-size: 14px; cursor: pointer; }
-        .btn-ui:disabled { background: var(--gray); color: #9ca3af; cursor: not-allowed; filter: grayscale(1); opacity: 0.6; }
+        
+        /* SHOP BUTTONS - GRAY WHEN NO MONEY */
+        .btn-ui { background: var(--yellow); color: #000; border: none; padding: 12px 20px; border-radius: 14px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        .btn-ui:disabled { background: var(--gray) !important; color: #666 !important; cursor: not-allowed; opacity: 0.8; }
 
-        /* TOP MODAL */
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: none; flex-direction: column; padding: 40px 20px; backdrop-filter: blur(20px); }
-        .top-item { display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--glass); border-radius: 18px; margin-bottom: 8px; border: 1px solid var(--border); }
-        .top-rank { width: 30px; font-weight: 900; color: var(--yellow); font-size: 18px; }
+        /* TOP LIST */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.96); z-index: 2000; display: none; flex-direction: column; padding: 40px 20px; backdrop-filter: blur(20px); }
+        .top-item { display: flex; align-items: center; gap: 12px; padding: 15px; background: rgba(255,255,255,0.03); border-radius: 18px; margin-bottom: 8px; border: 1px solid var(--border); }
+        .top-rank { width: 25px; font-weight: 900; color: var(--yellow); }
 
         .tap-pop { position: fixed; pointer-events: none; font-weight: 900; z-index: 6000; animation: tapAnim 0.8s ease-out forwards; }
         @keyframes tapAnim { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } 20% { opacity: 1; transform: translate(-50%, -100%) scale(1.2); } 100% { transform: translate(var(--tx), -220px) scale(1); opacity: 0; } }
 
-        #bonus-win { position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 5000; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        #bonus-win { position: fixed; inset: 0; background: #000; z-index: 5000; display: none; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
@@ -72,7 +71,7 @@
 
     <div class="content">
         <div class="page active" id="p0">
-            <div style="margin-top:20px;"><b id="username" style="opacity:0.4; font-size:12px; letter-spacing:1px;">PLAYER</b></div>
+            <div style="margin-top:20px; opacity:0.5; font-size:11px; text-align:center;" id="username">LOADING...</div>
             <div id="score">0</div>
             <div class="coin-box">
                 <img id="coin" class="coin-img" src="https://i.ibb.co/fYzVqbLB/file-00000000cb70720a92f5b0192d2b39a4.png">
@@ -88,12 +87,12 @@
         </div>
 
         <div class="page" id="p1">
-            <h2 style="margin-bottom:20px; font-size:28px;">Магазин</h2>
+            <h2 style="margin-bottom:20px;">Магазин</h2>
             <div id="shop-list"></div>
         </div>
 
         <div class="page" id="p2">
-            <h2 style="margin-bottom:20px; font-size:28px;">Друзі</h2>
+            <h2 style="margin-bottom:20px;">Друзі</h2>
             <div class="card" style="text-align:center;">
                 <h3 style="color:var(--yellow); margin-bottom:10px;">Запроси друга</h3>
                 <p style="opacity:0.7; font-size:14px; margin-bottom:15px;">Отримай <b style="color:var(--yellow)">10,000 монет</b> за друга!</p>
@@ -102,13 +101,13 @@
                 <button class="btn-ui" onclick="copyRefLink()" style="width:100%; background:var(--glass); color:#fff;">📋 КОПІЮВАТИ</button>
             </div>
             <div class="card" style="display:flex; justify-content:space-between;">
-                <span>Твої друзі:</span> <b id="friends-count" style="color:var(--yellow)">0</b>
+                <span>Запрошено друзів:</span> <b id="friends-count" style="color:var(--yellow)">0</b>
             </div>
         </div>
 
-        <div class="page" id="p3"><h2 style="margin-bottom:20px; font-size:28px;">Квести</h2><div id="quest-list"></div></div>
+        <div class="page" id="p3"><h2 style="margin-bottom:20px;">Квести</h2><div id="quest-list"></div></div>
 
-        <div class="page" id="p4"><h2 style="margin-bottom:20px; font-size:28px;">Статистика</h2><div id="stat-list"></div></div>
+        <div class="page" id="p4"><h2 style="margin-bottom:20px;">Статистика</h2><div id="stat-list"></div></div>
     </div>
 
     <nav>
@@ -125,7 +124,7 @@
 
 <div id="top-modal" class="modal">
     <div style="display:flex; justify-content:space-between; margin-bottom:30px;">
-        <h2 style="color:var(--yellow)">ЛІДЕРБОРД</h2>
+        <h2 style="color:var(--yellow)">ТОП ГРАВЦІВ</h2>
         <b onclick="closeTop()" style="font-size:24px; cursor:pointer;">✕</b>
     </div>
     <div id="top-content"></div>
@@ -133,9 +132,9 @@
 
 <div id="bonus-win">
     <div id="b-ready" style="text-align:center;">
-        <h1 style="font-size:45px;">🎁 ПРИЗ</h1>
+        <h1 style="font-size:45px;">🎁 БОНУС</h1>
         <p style="opacity:0.6; margin:20px 0;">x10 КЛІК НА 7.5 СЕКУНД</p>
-        <button class="btn-ui" onclick="startBonusNow()" style="width:220px; height:65px; font-size:18px;">ПОЇХАЛИ!</button>
+        <button class="btn-ui" onclick="startBonusNow()" style="width:220px; height:65px;">ПОЧАТИ</button>
     </div>
     <div id="b-active" style="display:none; text-align:center; width:100%; height:100%;">
         <div id="b-timer" style="margin-top:20vh; font-size:100px; font-weight:900; color:var(--yellow);">7.5</div>
@@ -150,7 +149,7 @@
     const db = supabase.createClient(SB_URL, SB_KEY);
 
     const tg = window.Telegram.WebApp;
-    const userId = tg.initDataUnsafe?.user?.id.toString() || "dev_user";
+    const userId = tg.initDataUnsafe?.user?.id.toString() || "dev_" + Math.floor(Math.random()*1000);
     const userName = (tg.initDataUnsafe?.user?.first_name || "ГРАВЕЦЬ").toUpperCase();
 
     let state = {
@@ -166,7 +165,7 @@
 
     async function loadData() {
         document.getElementById('username').innerText = userName;
-        const { data } = await db.from('players').select('state').eq('id', userId).maybeSingle();
+        const { data, error } = await db.from('players').select('state').eq('id', userId).maybeSingle();
         if(data) state = Object.assign(state, data.state);
         updateUI();
     }
@@ -189,25 +188,27 @@
         document.getElementById('friends-count').innerText = state.friends;
         document.getElementById('ref-link-display').innerText = `https://t.me/raccoon_coin_tap_bot/RACCOON_TAP_APP?startapp=${userId}`;
 
-        // Магазин - Сірі кнопки
-        document.getElementById('shop-list').innerHTML = [
-            { id: 'tap', n: 'Мульти-клік', b: 200 },
-            { id: 'energy', n: 'Енергетик', b: 500 },
-            { id: 'bot', n: 'Авто-бот', b: 2000 }
-        ].map(i => {
-            const cost = Math.floor(i.b * Math.pow(2.4, state.lvls[i.id]));
+        // МАГАЗИН (ДЕШЕВШЕ)
+        const items = [
+            { id: 'tap', n: 'Мульти-клік', b: 100 }, // Було 200
+            { id: 'energy', n: 'Енергетик', b: 200 }, // Було 500
+            { id: 'bot', n: 'Авто-бот', b: 800 }     // Було 2000
+        ];
+
+        document.getElementById('shop-list').innerHTML = items.map(i => {
+            const cost = Math.floor(i.b * Math.pow(1.5, state.lvls[i.id])); // Коефіцієнт 1.5 замість 2.4
             const canAfford = state.score >= cost;
             return `<div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-                <div><b>${i.n}</b><br><small style="opacity:0.5">Рівень ${state.lvls[i.id]}</small></div>
-                <button class="btn-ui buy-btn" onclick="buy('${i.id}', ${cost})" ${!canAfford ? 'disabled' : ''}>💰 ${cost.toLocaleString()}</button>
+                <div><b>${i.n}</b><br><small style="opacity:0.5">Lvl ${state.lvls[i.id]}</small></div>
+                <button class="btn-ui" onclick="buy('${i.id}', ${cost})" ${!canAfford ? 'disabled' : ''}>💰 ${cost.toLocaleString()}</button>
             </div>`;
         }).join('');
 
-        // Квести
+        // КВЕСТИ
         const qList = [
-            { id: 1, n: "Новачок", t: 1000, type: "earned", r: 500 },
-            { id: 2, n: "Крит-майстер", t: 50, type: "crits", r: 2000 },
-            { id: 3, n: "Марафонець", t: 5000, type: "clicks", r: 10000 }
+            { id: 1, n: "Початківець", t: 500, type: "earned", r: 300 },
+            { id: 2, n: "Крит-хантер", t: 20, type: "crits", r: 1000 },
+            { id: 3, n: "Активіст", t: 1000, type: "clicks", r: 2500 }
         ];
         document.getElementById('quest-list').innerHTML = qList.map(q => {
             let cur = q.type === 'earned' ? state.totalEarned : (q.type === 'clicks' ? state.totalClicks : state.totalCrits);
@@ -218,8 +219,8 @@
             </div>`;
         }).join('');
 
-        // Статистика
-        const st = [["Всього", state.totalEarned], ["Кліки", state.totalClicks], ["Бонуси", state.bonusEarned], ["Сила", state.power]];
+        // СТАТИСТИКА
+        const st = [["На балансі", state.score], ["Всього здобуто", state.totalEarned], ["Бонусні монети", state.bonusEarned], ["Сила тапу", state.power]];
         document.getElementById('stat-list').innerHTML = st.map(s => `<div class="card" style="display:flex; justify-content:space-between;"><span>${s[0]}</span><b>${Math.floor(s[1]).toLocaleString()}</b></div>`).join('');
     }
 
@@ -252,10 +253,9 @@
     function buy(id, cost) {
         if(state.score >= cost) {
             state.score -= cost; state.lvls[id]++;
-            if(id==='tap') state.power++; if(id==='energy') state.max += 500; if(id==='bot') state.botLvl++;
-            // Анімація списання
-            const btn = event.target.getBoundingClientRect();
-            spawnPop(btn.left + 20, btn.top, `-${cost.toLocaleString()}`, 'var(--crit)');
+            if(id==='tap') state.power++; 
+            if(id==='energy') state.max += 500; 
+            if(id==='bot') state.botLvl++;
             updateUI(); saveData();
         }
     }
@@ -265,20 +265,30 @@
         updateUI(); saveData();
     }
 
+    // ЛІДЕРБОРД З ПЕРЕВІРКОЮ
     async function openTop() {
         document.getElementById('top-modal').style.display = 'flex';
-        document.getElementById('top-content').innerHTML = "<p style='text-align:center;'>Шукаємо лідерів...</p>";
-        const { data } = await db.from('players').select('username, score_top').order('score_top', {ascending: false}).limit(10);
+        document.getElementById('top-content').innerHTML = "<p style='text-align:center;'>Завантаження...</p>";
         
-        // Динамічний лідерборд: показує тільки тих, хто є
-        document.getElementById('top-content').innerHTML = data.map((p, i) => `
-            <div class="top-item">
-                <div class="top-rank">#${i+1}</div>
-                <div style="width:40px; height:40px; background:var(--yellow); border-radius:50%; color:#000; display:flex; align-items:center; justify-content:center; font-weight:900;">${p.username[0]}</div>
-                <div style="flex:1"><b>${p.username}</b></div>
-                <div style="color:var(--yellow)">${Math.floor(p.score_top).toLocaleString()}</div>
-            </div>
-        `).join('');
+        try {
+            const { data, error } = await db.from('players').select('username, score_top').order('score_top', {ascending: false}).limit(10);
+            
+            if (error || !data || data.length === 0) {
+                document.getElementById('top-content').innerHTML = "<p style='text-align:center; opacity:0.5;'>Гравців поки немає...</p>";
+                return;
+            }
+
+            document.getElementById('top-content').innerHTML = data.map((p, i) => `
+                <div class="top-item">
+                    <div class="top-rank">#${i+1}</div>
+                    <div style="width:36px; height:36px; background:var(--yellow); border-radius:50%; color:#000; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:14px;">${p.username ? p.username[0] : '?'}</div>
+                    <div style="flex:1"><b>${p.username || 'Анонім'}</b></div>
+                    <div style="color:var(--yellow); font-weight:800;">${Math.floor(p.score_top || 0).toLocaleString()}</div>
+                </div>
+            `).join('');
+        } catch(e) {
+            document.getElementById('top-content').innerHTML = "<p style='text-align:center;'>Помилка бази даних.</p>";
+        }
     }
 
     function closeTop() { document.getElementById('top-modal').style.display = 'none'; }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Raccoon Coin - Fixed Edition</title>
+    <title>Raccoon Coin</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -23,14 +23,12 @@
 
         #app { width: 100%; max-width: 500px; height: 100%; display: flex; flex-direction: column; position: relative; }
 
-        /* НАВІГАЦІЯ - ТІЛЬКИ ІКОНКИ, БЕЗ ТЕКСТУ */
+        /* НАВІГАЦІЯ - ТІЛЬКИ ІКОНКИ */
         nav { position: absolute; bottom: 0; left: 0; width: 100%; height: 85px; background: rgba(10, 10, 10, 0.7); border-top: 1px solid var(--border); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
         .nav-grid { display: flex; height: 100%; position: relative; width: 100%; }
         .nav-item { flex: 1; display: flex; align-items: center; justify-content: center; z-index: 5; opacity: 0.3; transition: 0.3s; cursor: pointer; }
         .nav-item.active { opacity: 1; }
         .nav-item img { width: 28px; height: 28px; }
-        
-        /* Капсула 20% для 5 іконок */
         .capsule { position: absolute; width: 20%; height: 55px; top: 15px; background: rgba(255, 255, 255, 0.12); border-radius: 20px; transition: transform 0.4s cubic-bezier(0.18, 0.9, 0.3, 1.1); z-index: 1; border: 1px solid rgba(255,255,255,0.05); }
 
         /* КОНТЕНТ */
@@ -60,7 +58,7 @@
 </head>
 <body>
 
-<div id="debug-log">Увага: Гра працює локально. Встав Supabase URL у код!</div>
+<div id="debug-log">Помилка: перевір підключення до бази або ключі!</div>
 
 <div id="app">
     <div class="content">
@@ -88,11 +86,6 @@
         </div>
 
         <div class="page" id="p2">
-            <h2 style="margin-bottom:20px;">Квести</h2>
-            <div id="quest-list"></div>
-        </div>
-
-        <div class="page" id="p3">
             <h2 style="margin-bottom:20px;">Друзі</h2>
             <div class="card" style="display:block; text-align:center;">
                 <h3 style="color:var(--yellow); margin-bottom:10px;">Запроси друга</h3>
@@ -107,6 +100,11 @@
                 <button class="btn-ui" onclick="copyRefLink()" style="width:100%; font-size:16px; background:rgba(255,255,255,0.1); color:#fff;">📋 Скопіювати</button>
             </div>
             <div class="card"><span>Запрошено друзів:</span><b id="friends-count" style="color:var(--yellow); font-size:20px;">0</b></div>
+        </div>
+
+        <div class="page" id="p3">
+            <h2 style="margin-bottom:20px;">Квести</h2>
+            <div id="quest-list"></div>
         </div>
 
         <div class="page" id="p4">
@@ -141,31 +139,37 @@
 </div>
 
 <script>
-    // --- 1. ТЕЛЕГРАМ ТА НАЛАШТУВАННЯ ---
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.ready();
-
-    // БЕЗПЕЧНЕ отримання юзера (якщо відкрито в браузері, а не в ТГ)
-    const userId = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.id.toString() : "test_id_123";
-    const userName = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user.first_name.toUpperCase() : "TEST_PLAYER";
-    document.getElementById('username').innerText = userName;
-
-    // --- ВПИШИ СЮДИ СВОЇ ДАНІ! ---
+    // ==========================================
+    // 1. НАЛАШТУВАННЯ - ВПИШИ СВОЇ ДАНІ ТУТ!
+    // ==========================================
     const SB_URL = 'https://ohyagfbgaekifqrxvvks.supabase.co'; 
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oeWFnZmJnYWVraWZxcnh2dmtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Mjc2MzIsImV4cCI6MjA4OTUwMzYzMn0.VJhJcN3RaeJdZVsLKGU3NjLvCCdNTR5TA_Sp6jj1WKM';
     const BOT_USERNAME = "raccoon_coin_tap_bot"; // наприклад: MyRaccoonBot
     const APP_SHORT_NAME = "RACCOON_TAP_APP";   // наприклад: play
 
-    // --- 2. БЕЗПЕЧНА ІНІЦІАЛІЗАЦІЯ БАЗИ ---
-    let db = null;
-    if (SB_URL.startsWith('http')) {
-        db = supabase.createClient(SB_URL, SB_KEY);
-    } else {
-        document.getElementById('debug-log').style.display = 'block';
+    // ==========================================
+    // 2. БЕЗПЕЧНА ІНІЦІАЛІЗАЦІЯ TELEGRAM
+    // ==========================================
+    const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : null;
+    
+    if (tg) {
+        try { tg.expand(); tg.ready(); } catch(e) { console.error("TG Init Error:", e); }
     }
 
-    // --- 3. СТАН ГРИ ---
+    const userId = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) 
+        ? tg.initDataUnsafe.user.id.toString() 
+        : "dev_user_123";
+        
+    const userName = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) 
+        ? tg.initDataUnsafe.user.first_name.toUpperCase() 
+        : "ГРАВЕЦЬ";
+
+    const userElement = document.getElementById('username');
+    if (userElement) userElement.innerText = userName;
+
+    // ==========================================
+    // 3. ЗМІННІ СТАНУ ГРИ
+    // ==========================================
     let state = {
         score: 0, energy: 1000, max: 1000, power: 1,
         totalClicks: 0, totalCrits: 0, totalEarned: 0, maxCrit: 0,
@@ -174,6 +178,10 @@
         lvls: { tap: 1, energy: 1, bot: 0 },
         doneQuests: []
     };
+
+    // Змінні для бонусу (винесені наверх, щоб не було помилок!)
+    let isB = false; 
+    let bc = 0;
 
     const shopItems = [
         { id: 'tap', n: 'Мульти-клік', b: 200 },
@@ -188,27 +196,33 @@
         { id: 4, n: "Шопоголік", d: "Купи 10 покращень", t: 10, type: "upgrades", r: 10000 }
     ];
 
-    function getRefLink() {
-        return `https://t.me/${BOT_USERNAME}/${APP_SHORT_NAME}?startapp=${userId}`;
+    // ==========================================
+    // 4. БЕЗПЕЧНА БАЗА ДАНИХ (SUPABASE)
+    // ==========================================
+    let db = null;
+    if (SB_URL && SB_URL.startsWith('http')) {
+        db = supabase.createClient(SB_URL, SB_KEY);
+    } else {
+        document.getElementById('debug-log').style.display = 'block';
     }
 
-    // --- 4. БАЗА ДАНИХ (БЕЗПЕЧНИЙ ЗАПУСК) ---
     async function loadData() {
-        if (!db) { updateUI(); return; } // Якщо БД не налаштована, просто граємо локально
+        if (!db) { updateUI(); return; } 
         try {
             const { data, error } = await db.from('players').select('state').eq('id', userId).maybeSingle();
             if (data && data.state) {
                 state = Object.assign(state, data.state);
             } else {
-                const ref = tg.initDataUnsafe?.start_param;
+                // Логіка реферала при першому вході
+                const ref = (tg && tg.initDataUnsafe) ? tg.initDataUnsafe.start_param : null;
                 if(ref && ref !== userId) {
                     state.score += 5000; state.totalEarned += 5000;
                     rewardInviter(ref);
-                    if(tg.showAlert) tg.showAlert("🎁 Ти перейшов за посиланням і отримав 5,000 монет!");
+                    if(tg && tg.showAlert) tg.showAlert("🎁 Ти перейшов за посиланням і отримав 5,000 монет!");
                 }
             }
             updateUI();
-        } catch(e) { console.error(e); }
+        } catch(e) { console.error(e); updateUI(); }
     }
 
     async function rewardInviter(inviterId) {
@@ -227,14 +241,19 @@
         try { await db.from('players').upsert({ id: userId, state: state }); } catch(e) {}
     }
 
-    // --- 5. ІНТЕРФЕЙС ТА НАВІГАЦІЯ ---
+    // ==========================================
+    // 5. ЛОГІКА ІНТЕРФЕЙСУ ТА НАВІГАЦІЇ
+    // ==========================================
     function nav(idx) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
         document.getElementById(`p${idx}`).classList.add('active');
         document.querySelectorAll('.nav-item')[idx].classList.add('active');
-        // Рух капсули на 100% від її власної ширини (яка є 20%)
         document.getElementById('capsule').style.transform = `translateX(${idx * 100}%)`;
+    }
+
+    function getRefLink() {
+        return `https://t.me/${BOT_USERNAME}/${APP_SHORT_NAME}?startapp=${userId}`;
     }
 
     function updateUI() {
@@ -281,7 +300,9 @@
         `).join('');
     }
 
-    // --- 6. МЕХАНІКА ---
+    // ==========================================
+    // 6. МЕХАНІКА ГРИ ТА КЛІКИ
+    // ==========================================
     function spawnParticle(x, y, txt, crit) {
         const d = document.createElement('div');
         d.className = 'tap-pop'; d.innerText = txt;
@@ -293,7 +314,7 @@
     }
 
     function handleTap(e) {
-        if(isB) return;
+        if(isB) return; // Блокуємо звичайні кліки під час бонусу
         e.preventDefault();
         const points = e.touches ? e.touches : [{ clientX: e.clientX, clientY: e.clientY }];
         
@@ -329,31 +350,48 @@
         }
     }
 
-    // --- РЕФЕРАЛИ ---
+    // ==========================================
+    // 7. РЕФЕРАЛИ
+    // ==========================================
     function inviteFriend() {
         const text = "🚀 Заходь у Raccoon Coin! Отримай 5000 монет одразу та прокачуй свого єнота!";
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(getRefLink())}&text=${encodeURIComponent(text)}`;
-        if(tg.openTelegramLink) tg.openTelegramLink(shareUrl);
+        if(tg && tg.openTelegramLink) tg.openTelegramLink(shareUrl);
         else window.open(shareUrl, "_blank");
     }
 
     function copyRefLink() {
         navigator.clipboard.writeText(getRefLink()).then(() => {
-            if(tg.showAlert) tg.showAlert("Посилання скопійовано!");
+            if(tg && tg.showAlert) tg.showAlert("Посилання скопійовано!");
             else alert("Посилання скопійовано!");
         });
     }
 
-    // --- БОНУС ---
-    let isB = false, bc = 0;
+    // ==========================================
+    // 8. БОНУСНА ГРА
+    // ==========================================
     function openBonus() {
         if(state.bonusLimit <= 0) {
-            if(tg.showAlert) tg.showAlert("Ліміт на сьогодні вичерпано!");
+            if(tg && tg.showAlert) tg.showAlert("Ліміт на сьогодні вичерпано!");
+            else alert("Ліміт на сьогодні вичерпано!");
             return;
         }
         document.getElementById('bonus-win').style.display = 'flex';
         document.getElementById('b-ready').style.display = 'block';
         document.getElementById('b-active').style.display = 'none';
+    }
+
+    function startBonusNow() {
+        document.getElementById('b-ready').style.display = 'none';
+        document.getElementById('b-active').style.display = 'block';
+        isB = true; bc = 0;
+        document.getElementById('b-clicks').innerText = "0";
+        let t = 7.5;
+        let itv = setInterval(() => {
+            t -= 0.1;
+            document.getElementById('b-timer').innerText = Math.max(0, t).toFixed(1);
+            if(t <= 0) { clearInterval(itv); finishBonus(); }
+        }, 100);
     }
 
     function startBonusNow() {
@@ -376,7 +414,8 @@
         isB = false;
         document.getElementById('bonus-win').style.display = 'none';
         updateUI(); saveData();
-        if(tg.showAlert) tg.showAlert(`Ти виграв ${win} монет!`);
+        if(tg && tg.showAlert) tg.showAlert(`Ти виграв ${win} монет!`);
+        else alert(`Ти виграв ${win} монет!`);
     }
 
     function handleBonusTap(e) {
@@ -388,10 +427,27 @@
         for(let p of points) spawnParticle(p.clientX, p.clientY, "x10", true);
     }
 
-    // --- ІВЕНТИ ТА ЦИКЛИ ---
+    // ==========================================
+    // 9. ПОДІЇ ТА АВТО-ОНОВЛЕННЯ
+    // ==========================================
     const coin = document.getElementById('coin');
     const bonusZone = document.getElementById('bonus-click-zone');
 
     coin.addEventListener('touchstart', handleTap, {passive: false});
     bonusZone.addEventListener('touchstart', handleBonusTap, {passive: false});
-    coin.addEventList
+    coin.addEventListener('mousedown', handleTap);
+    bonusZone.addEventListener('mousedown', handleBonusTap);
+
+    setInterval(() => {
+        if(state.energy < state.max) state.energy = Math.min(state.max, state.energy + 2);
+        if(state.botLvl > 0) { state.score += state.botLvl; state.totalEarned += state.botLvl; }
+        updateUI();
+    }, 1000);
+
+    setInterval(saveData, 15000);
+
+    // СТАРТ
+    loadData();
+</script>
+</body>
+</html>

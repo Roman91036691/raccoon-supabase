@@ -25,10 +25,10 @@
         /* NAV */
         nav { position: absolute; bottom: 0; left: 0; width: 100%; height: 85px; background: rgba(15, 15, 15, 0.8); border-top: 1px solid var(--border); backdrop-filter: blur(20px); z-index: 1000; padding-bottom: env(safe-area-inset-bottom); }
         .nav-grid { display: flex; height: 100%; position: relative; }
-        .nav-item { flex: 1; display: flex; align-items: center; justify-content: center; opacity: 0.3; transition: 0.3s; }
+        .nav-item { flex: 1; display: flex; align-items: center; justify-content: center; opacity: 0.3; transition: 0.3s; cursor: pointer; }
         .nav-item.active { opacity: 1; }
         .nav-item img { width: 26px; height: 26px; }
-        .capsule { position: absolute; width: 20%; height: 55px; top: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 20px; transition: 0.4s cubic-bezier(0.18, 0.9, 0.3, 1.1); }
+        .capsule { position: absolute; width: 20%; height: 55px; top: 15px; background: rgba(255, 255, 255, 0.1); border-radius: 20px; transition: 0.4s cubic-bezier(0.18, 0.9, 0.3, 1.1); pointer-events: none; }
 
         /* PAGES */
         .content { flex: 1; overflow-y: auto; padding-bottom: 100px; scrollbar-width: none; }
@@ -69,7 +69,7 @@
 
     <div class="content">
         <div class="page active" id="p0">
-            <div style="margin-top:20px; opacity:0.5; font-size:11px; text-align:center;" id="username">LOADING...</div>
+            <div style="margin-top:20px; opacity:0.5; font-size:11px; text-align:center;" id="username">ЗАВАНТАЖЕННЯ...</div>
             <div id="score">0</div>
             <div class="coin-box">
                 <img id="coin" class="coin-img" src="https://i.ibb.co/fYzVqbLB/file-00000000cb70720a92f5b0192d2b39a4.png">
@@ -142,16 +142,39 @@
 </div>
 
 <script>
+    // 1. БЕЗПЕЧНА ІНІЦІАЛІЗАЦІЯ БАЗИ (щоб гра працювала навіть з AdBlock)
     const SB_URL = 'https://ohyagfbgaekifqrxvvks.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oeWFnZmJnYWVraWZxcnh2dmtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Mjc2MzIsImV4cCI6MjA4OTUwMzYzMn0.VJhJcN3RaeJdZVsLKGU3NjLvCCdNTR5TA_Sp6jj1WKM';
-    const db = supabase.createClient(SB_URL, SB_KEY);
-
-    const tg = window.Telegram.WebApp;
-    // tg.expand(); // Розкоментуй, щоб апка відкривалася на весь екран одразу
     
-    const userId = tg.initDataUnsafe?.user?.id.toString() || "dev_" + Math.floor(Math.random()*1000);
-    const userName = (tg.initDataUnsafe?.user?.first_name || "ГРАВЕЦЬ").toUpperCase();
+    let db = null;
+    try {
+        if (typeof supabase !== 'undefined') {
+            db = supabase.createClient(SB_URL, SB_KEY);
+        } else {
+            console.warn("Supabase не знайдено! Перевір інтернет або AdBlock.");
+        }
+    } catch(e) {
+        console.error("Помилка бази:", e);
+    }
 
+    // 2. БЕЗПЕЧНА ІНІЦІАЛІЗАЦІЯ TELEGRAM (без використання ?. для старих пристроїв)
+    let tg = null;
+    let userId = "dev_" + Math.floor(Math.random() * 1000);
+    let userName = "ГРАВЕЦЬ";
+
+    try {
+        if (window.Telegram && window.Telegram.WebApp) {
+            tg = window.Telegram.WebApp;
+            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                userId = tg.initDataUnsafe.user.id.toString();
+                userName = (tg.initDataUnsafe.user.first_name || "ГРАВЕЦЬ").toUpperCase();
+            }
+        }
+    } catch (e) {
+        console.error("Помилка Telegram API:", e);
+    }
+
+    // 3. СТАН ГРАВЦЯ
     let state = {
         score: 0, energy: 1000, max: 1000, power: 1,
         totalClicks: 0, totalCrits: 0, totalEarned: 0,
@@ -166,38 +189,47 @@
     let bonusInterval;
     const BONUS_DURATION = 7.5;
 
-    // ЗАВАНТАЖЕННЯ ДАНИХ (З обробкою помилок)
+    // ЗАВАНТАЖЕННЯ ДАНИХ
     async function loadData() {
         document.getElementById('username').innerText = userName;
+        
+        if (!db) {
+            updateUI(); // Граємо локально, якщо база відпала
+            return;
+        }
+
         try {
             const { data, error } = await db.from('players').select('state').eq('id', userId).maybeSingle();
             if (error) throw error;
             
             if (data && data.state) {
-                state = Object.assign(state, data.state);
+                // Безпечне злиття об'єктів, щоб не зникли рівні
+                state = { 
+                    ...state, 
+                    ...data.state, 
+                    lvls: { ...state.lvls, ...(data.state.lvls || {}) },
+                    doneQuests: data.state.doneQuests || []
+                };
             } else {
-                await saveData(); // Реєструємо нового гравця
+                await saveData(); 
             }
         } catch (e) {
             console.error("Помилка завантаження з БД:", e);
-            // Гра не ламається, а продовжується з базовими налаштуваннями
         }
         updateUI();
     }
 
     // ЗБЕРЕЖЕННЯ ДАНИХ
     async function saveData() {
+        if (!db) return;
         try {
-            const { error } = await db.from('players').upsert({ 
+            await db.from('players').upsert({ 
                 id: userId, 
                 username: userName, 
                 state: state, 
                 score_top: Math.floor(state.score) 
             });
-            if (error) console.error("Помилка збереження в БД:", error);
-        } catch(e) {
-            console.error("Не вдалося підключитися до Supabase:", e);
-        }
+        } catch(e) {}
     }
 
     // ОНОВЛЕННЯ ІНТЕРФЕЙСУ
@@ -245,7 +277,7 @@
         document.getElementById('stat-list').innerHTML = st.map(s => `<div class="card" style="display:flex; justify-content:space-between;"><span>${s[0]}</span><b>${Math.floor(s[1]).toLocaleString()}</b></div>`).join('');
     }
 
-    // АНІМАЦІЯ КЛІКУ
+    // АНІМАЦІЯ
     function spawnPop(x, y, txt, color) {
         const d = document.createElement('div');
         d.className = 'tap-pop'; d.innerText = txt;
@@ -256,11 +288,14 @@
         setTimeout(() => d.remove(), 700);
     }
 
-    // ГОЛОВНИЙ ТАП
+    // ТАПАННЯ (Мишка + Сенсор)
     function handleTap(e) {
         if(isB) return;
-        e.preventDefault();
-        const pts = e.touches ? e.touches : [{clientX: e.clientX, clientY: e.clientY}];
+        if(e.type === 'touchstart') e.preventDefault(); // Блокуємо подвійний клік на телефонах
+        
+        // Підтримка мишки та кількох пальців
+        const pts = e.touches ? Array.from(e.touches) : [{clientX: e.clientX, clientY: e.clientY}];
+        
         for(let p of pts) {
             if(state.energy >= 1) {
                 let crit = Math.random() < 0.08;
@@ -292,7 +327,13 @@
     async function openTop() {
         document.getElementById('top-modal').style.display = 'flex';
         document.getElementById('top-content').innerHTML = "<p style='text-align:center;'>Оновлення...</p>";
-        await saveData(); // Зберігаємо прогрес перед переглядом
+        
+        if (!db) {
+            document.getElementById('top-content').innerHTML = "<p style='text-align:center;'>База даних недоступна.</p>";
+            return;
+        }
+
+        await saveData(); 
 
         try {
             const { data, error } = await db.from('players').select('username, score_top').order('score_top', {ascending: false}).limit(10);
@@ -312,11 +353,7 @@
                 </div>
             `).join('');
         } catch(e) {
-            console.error("Помилка Лідерборду:", e);
-            document.getElementById('top-content').innerHTML = `
-                <p style='text-align:center; color: var(--crit); margin-bottom: 10px;'>Помилка бази даних.</p>
-                <p style='text-align:center; font-size: 12px; opacity: 0.7;'>Перевір налаштування (RLS) у Supabase або консоль (F12).</p>
-            `;
+            document.getElementById('top-content').innerHTML = "<p style='text-align:center; color: var(--crit);'>Помилка завантаження.</p>";
         }
     }
 
@@ -332,7 +369,8 @@
             document.getElementById('b-ready').style.display = 'block';
             document.getElementById('b-active').style.display = 'none';
         } else {
-            tg.showAlert("Ліміт вичерпано. Приходь завтра!");
+            if(tg) tg.showAlert("Ліміт вичерпано. Приходь завтра!");
+            else alert("Ліміт вичерпано. Приходь завтра!");
         }
     }
 
@@ -363,11 +401,9 @@
         state.bonusGames++; state.bonusLimit--;
         document.getElementById('bonus-win').style.display = 'none';
         
-        // Скидання тексту
-        document.getElementById('b-clicks').innerText = "КЛІКІВ: 0";
-        document.getElementById('b-timer').innerText = "0.0";
+        if(tg) tg.showAlert(`Гарна робота! +${win.toLocaleString()} монет`);
+        else alert(`Гарна робота! +${win.toLocaleString()} монет`);
         
-        tg.showAlert(`Гарна робота! +${win.toLocaleString()} монет`);
         updateUI(); saveData();
     }
 
@@ -383,4 +419,45 @@
     // ДРУЗІ
     function inviteFriend() {
         const text = "🚀 Заходь у Raccoon Coin! Отримай 10000 монет за друга!";
-        tg.openTelegramLink(`
+        if(tg) tg.openTelegramLink(`https://t.me/share/url?url=https://t.me/raccoon_coin_tap_bot/RACCOON_TAP_APP?startapp=${userId}&text=${encodeURIComponent(text)}`);
+    }
+
+    function copyRefLink() {
+        navigator.clipboard.writeText(`https://t.me/raccoon_coin_tap_bot/RACCOON_TAP_APP?startapp=${userId}`);
+        if(tg) tg.showAlert("Посилання скопійовано!");
+        else alert("Посилання скопійовано!");
+    }
+
+    // ПРИВ'ЯЗКА КЛІКІВ (Тепер працює і для мишки, і для пальця)
+    function setupClick(id, handler) {
+        const el = document.getElementById(id);
+        if(!el) return;
+        el.addEventListener('touchstart', handler, {passive: false});
+        el.addEventListener('mousedown', handler, {passive: false});
+    }
+
+    setupClick('coin', handleTap);
+    setupClick('bonus-click-zone', (e) => {
+        if(e.type === 'touchstart') e.preventDefault();
+        bc++; 
+        document.getElementById('b-clicks').innerText = `КЛІКІВ: ${bc}`;
+        let x = e.touches ? e.touches[0].clientX : e.clientX;
+        let y = e.touches ? e.touches[0].clientY : e.clientY;
+        spawnPop(x, y, "x10", 'var(--yellow)');
+    });
+
+    // ІГРОВИЙ ЦИКЛ
+    setInterval(() => {
+        if(state.energy < state.max) state.energy = Math.min(state.max, state.energy + 2);
+        if(state.botLvl > 0) { state.score += state.botLvl; state.totalEarned += state.botLvl; }
+        updateUI();
+    }, 1000);
+
+    // АВТОЗБЕРЕЖЕННЯ
+    setInterval(saveData, 15000);
+    
+    // СТАРТ
+    loadData();
+</script>
+</body>
+</html>

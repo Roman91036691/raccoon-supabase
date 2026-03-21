@@ -47,7 +47,7 @@
             backdrop-filter: blur(15px); z-index: 1000; 
         }
         .nav-grid { display: flex; height: 100%; position: relative; align-items: center; }
-        .nav-item { flex: 1; display: flex; align-items: center; justify-content: center; opacity: 0.35; transition: 0.3s; z-index: 2; position: relative; height: 100%; }
+        .nav-item { flex: 1; display: flex; align-items: center; justify-content: center; opacity: 0.35; transition: 0.3s; z-index: 2; position: relative; height: 100%; cursor: pointer;}
         .nav-item.active { opacity: 1; }
         .nav-item img { width: 26px; height: 26px; display: block; }
         
@@ -62,7 +62,7 @@
         }
 
         /* PAGES */
-        .content { flex: 1; overflow-y: auto; padding-bottom: 100px; }
+        .content { flex: 1; overflow-y: auto; padding-bottom: 100px; scrollbar-width: none; }
         .page { display: none; flex-direction: column; padding: 25px; animation: slideIn 0.3s ease; }
         .page.active { display: flex; }
         @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -74,15 +74,16 @@
         }
 
         .coin-box { flex: 1; display: flex; align-items: center; justify-content: center; }
-        .coin-img { width: 75vw; max-width: 280px; transition: transform 0.1s; filter: drop-shadow(0 0 30px rgba(253,224,71,0.1)); }
+        .coin-img { width: 75vw; max-width: 280px; transition: transform 0.1s; filter: drop-shadow(0 0 30px rgba(253,224,71,0.1)); cursor: pointer;}
         .coin-img:active { transform: scale(0.92); }
 
         .card { background: var(--glass); border: 1px solid var(--border); border-radius: 24px; padding: 20px; margin-bottom: 15px; }
-        .btn-ui { background: var(--yellow); color: #000; border: none; padding: 14px; border-radius: 16px; font-weight: 800; cursor: pointer; }
-        .btn-ui:disabled { background: #333 !important; color: #666 !important; }
+        .btn-ui { background: var(--yellow); color: #000; border: none; padding: 14px; border-radius: 16px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        .btn-ui:active { transform: scale(0.95); }
+        .btn-ui:disabled { background: #333 !important; color: #666 !important; transform: none; }
 
         /* TOP LIST */
-        .modal { position: fixed; inset: 0; background: #000; z-index: 2000; display: none; flex-direction: column; padding: 40px 20px; }
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: none; flex-direction: column; padding: 40px 20px; backdrop-filter: blur(10px);}
         .top-item { display: flex; align-items: center; gap: 12px; padding: 15px; background: var(--glass); border-radius: 18px; margin-bottom: 8px; border: 1px solid var(--border); }
         .top-rank { width: 25px; color: var(--yellow); font-weight: 900; }
 
@@ -118,16 +119,34 @@
             </div>
         </div>
 
-        <div class="page" id="p1"><h1>Магазин</h1><div id="shop-list"></div></div>
+        <div class="page" id="p1">
+            <h1 style="margin-bottom:25px;">Магазин</h1>
+            <div id="shop-list"></div>
+        </div>
+
         <div class="page" id="p2">
-            <h1>Друзі</h1>
+            <h1 style="margin-bottom:25px;">Друзі</h1>
             <div class="card" style="text-align:center;">
-                <button class="btn-ui" onclick="inviteFriend()" style="width:100%;">🚀 ЗАПРОСИТИ ДРУГА</button>
-                <p id="ref-link-display" style="font-size:10px; margin-top:15px; opacity:0.4; word-break:break-all;">---</p>
+                <h3 style="color:var(--yellow); margin-bottom:10px;">Запроси друга</h3>
+                <p style="opacity:0.7; margin-bottom:20px;">Отримай +10,000 монет!</p>
+                <div id="ref-link-display" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:15px; font-size:11px; margin-bottom:20px; border:1px dashed var(--border); word-break:break-all;">---</div>
+                <button class="btn-ui" onclick="inviteFriend()" style="width:100%; margin-bottom:10px;">🚀 НАДІСЛАТИ</button>
+                <button class="btn-ui" onclick="copyRefLink()" style="width:100%; background:var(--glass); color:#fff; border: 1px solid var(--border);">📋 КОПІЮВАТИ</button>
+            </div>
+            <div class="card" style="display:flex; justify-content:space-between; align-items: center;">
+                <span style="font-weight: 700;">Запрошено друзів:</span> <b id="friends-count" style="color:var(--yellow); font-size: 20px;">0</b>
             </div>
         </div>
-        <div class="page" id="p3"><h1>Квести</h1><div id="quest-list"></div></div>
-        <div class="page" id="p4"><h1>Статистика</h1><div id="stat-list"></div></div>
+
+        <div class="page" id="p3">
+            <h1 style="margin-bottom:25px;">Квести</h1>
+            <div id="quest-list"></div>
+        </div>
+
+        <div class="page" id="p4">
+            <h1 style="margin-bottom:25px;">Статистика</h1>
+            <div id="stat-list"></div>
+        </div>
     </div>
 
     <nav>
@@ -153,7 +172,9 @@
 <div id="bonus-win" class="modal" style="justify-content:center; align-items:center; text-align:center;">
     <div id="b-ready">
         <h1 style="font-size:40px; color:var(--yellow)">БОНУС x10!</h1>
-        <button class="btn-ui" onclick="startBonusNow()" style="margin-top:30px; width:200px;">ПОЧАТИ</button>
+        <p style="opacity:0.6; margin:20px 0;">Тапай якнайшвидше!</p>
+        <button class="btn-ui" onclick="startBonusNow()" style="margin-top:10px; width:200px;">ПОЧАТИ</button>
+        <p onclick="document.getElementById('bonus-win').style.display='none'" style="margin-top:30px; opacity:0.4; cursor:pointer;">Скасувати</p>
     </div>
     <div id="b-active" style="display:none;">
         <div id="b-timer" style="font-size:80px; font-weight:900; color:var(--yellow)">7.5</div>
@@ -173,10 +194,20 @@
     let userId = tg.initDataUnsafe?.user?.id?.toString() || "dev_user_" + Math.floor(Math.random()*100);
     let userName = (tg.initDataUnsafe?.user?.first_name || "ГРАВЕЦЬ").toUpperCase();
 
+    // ПОВНИЙ СТЕЙТ
     let state = {
-        score: 0, energy: 1000, max: 1000, power: 1, totalEarned: 0,
-        bonusLimit: 3, lastBonusDate: "", lvls: { tap: 1, energy: 1, bot: 0 }
+        score: 0, energy: 1000, max: 1000, power: 1, 
+        totalEarned: 0, totalClicks: 0, friends: 0, botLvl: 0,
+        bonusLimit: 3, lastBonusDate: "", 
+        lvls: { tap: 1, energy: 1, bot: 0 },
+        doneQuests: []
     };
+
+    let questsData = [
+        { id: 'q_tg', n: 'Підписка на канал', b: 5000, link: 'https://t.me/durov' },
+        { id: 'q_yt', n: 'Подивитись відео', b: 10000, link: 'https://youtube.com' },
+        { id: 'q_x', n: 'Підписка X (Twitter)', b: 3000, link: 'https://x.com' }
+    ];
 
     let isB = false, bc = 0, bonusInterval;
 
@@ -185,7 +216,10 @@
         if (!db) { updateUI(); return; }
         try {
             const { data } = await db.from('players').select('state').eq('id', userId).maybeSingle();
-            if (data?.state) state = { ...state, ...data.state };
+            if (data?.state) {
+                state = { ...state, ...data.state, lvls: { ...state.lvls, ...data.state.lvls } };
+                if(!state.doneQuests) state.doneQuests = [];
+            }
         } catch (e) {}
         updateUI();
     }
@@ -196,29 +230,71 @@
     }
 
     function updateUI() {
+        // Оновлення лімітів бонусів по днях
+        const today = new Date().toLocaleDateString();
+        if(state.lastBonusDate !== today) { state.bonusLimit = 3; state.lastBonusDate = today; }
+
         document.getElementById('score').innerText = Math.floor(state.score).toLocaleString();
         document.getElementById('energy-txt').innerText = `${Math.floor(state.energy)}/${state.max}`;
         document.getElementById('bar-fill').style.width = (state.energy/state.max)*100 + "%";
         document.getElementById('b-limit').innerText = state.bonusLimit;
-        document.getElementById('ref-link-display').innerText = `https://t.me/raccoon_coin_tap_bot/RACCOON_TAP_APP?startapp=${userId}`;
+        document.getElementById('friends-count').innerText = state.friends || 0;
+        
+        const refLink = `https://t.me/raccoon_coin_tap_bot/RACCOON_TAP_APP?startapp=${userId}`;
+        document.getElementById('ref-link-display').innerText = refLink;
 
-        const items = [{ id: 'tap', n: 'Сила тапу', b: 100 }, { id: 'energy', n: 'Енергія', b: 200 }];
+        // РЕНДЕР МАГАЗИНУ (Додано Авто-бота)
+        const items = [
+            { id: 'tap', n: 'Сила тапу', b: 100 }, 
+            { id: 'energy', n: 'Енергія', b: 200 },
+            { id: 'bot', n: 'Авто-бот', b: 1000 }
+        ];
         document.getElementById('shop-list').innerHTML = items.map(i => {
             const cost = Math.floor(i.b * Math.pow(1.6, state.lvls[i.id]));
             return `<div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-                <div><b>${i.n}</b><br><small>Lvl ${state.lvls[i.id]}</small></div>
+                <div><b>${i.n}</b><br><small style="opacity:0.6">Lvl ${state.lvls[i.id]}</small></div>
                 <button class="btn-ui" onclick="buy('${i.id}', ${cost})" ${state.score < cost ? 'disabled' : ''}>💰 ${cost}</button>
             </div>`;
         }).join('');
+
+        // РЕНДЕР КВЕСТІВ
+        document.getElementById('quest-list').innerHTML = questsData.map(q => {
+            const isDone = state.doneQuests.includes(q.id);
+            return `<div class="card" style="display:flex; justify-content:space-between; align-items:center; opacity: ${isDone ? '0.5' : '1'}">
+                <div><b>${q.n}</b><br><small style="color:var(--yellow)">+${q.b.toLocaleString()}</small></div>
+                <button class="btn-ui" onclick="doQuest('${q.id}', '${q.link}', ${q.b})" ${isDone ? 'disabled' : ''} style="font-size:12px; padding: 10px 15px;">
+                    ${isDone ? 'ВИКОНАНО' : 'ВИКОНАТИ'}
+                </button>
+            </div>`;
+        }).join('');
+
+        // РЕНДЕР СТАТИСТИКИ
+        const st = [
+            ["Поточний баланс", state.score], 
+            ["Всього здобуто", state.totalEarned], 
+            ["Сила тапу", state.power],
+            ["Всього кліків", state.totalClicks],
+            ["Рівень бота", state.lvls.bot]
+        ];
+        document.getElementById('stat-list').innerHTML = st.map(s => 
+            `<div class="card" style="display:flex; justify-content:space-between; padding: 15px 20px;">
+                <span style="opacity:0.8">${s[0]}</span>
+                <b style="color:var(--yellow)">${Math.floor(s[1]).toLocaleString()}</b>
+            </div>`
+        ).join('');
     }
 
+    // ЛОГІКА ТАПІВ
     function handleTap(e) {
         if(isB) return;
         if(e.type === 'touchstart') e.preventDefault();
         const pts = e.touches ? Array.from(e.touches) : [{clientX: e.clientX, clientY: e.clientY}];
         pts.forEach(p => {
             if(state.energy >= 1) {
-                state.score += state.power; state.totalEarned += state.power; state.energy--;
+                state.score += state.power; 
+                state.totalEarned += state.power; 
+                state.totalClicks++;
+                state.energy--;
                 const d = document.createElement('div');
                 d.className = 'tap-pop'; d.innerText = `+${state.power}`;
                 d.style.left = p.clientX + 'px'; d.style.top = p.clientY + 'px';
@@ -229,14 +305,48 @@
         updateUI();
     }
 
+    // ЛОГІКА ПОКУПОК
     function buy(id, cost) {
         if(state.score >= cost) {
             state.score -= cost; state.lvls[id]++;
-            if(id==='tap') state.power++; if(id==='energy') state.max += 500;
+            if(id==='tap') state.power++; 
+            if(id==='energy') state.max += 500;
+            if(id==='bot') state.botLvl++;
             updateUI(); saveData();
         }
     }
 
+    // ЛОГІКА КВЕСТІВ
+    function doQuest(id, link, reward) {
+        tg.openLink(link);
+        setTimeout(() => {
+            if(!state.doneQuests.includes(id)) {
+                state.doneQuests.push(id);
+                state.score += reward;
+                state.totalEarned += reward;
+                updateUI(); saveData();
+                tg.showAlert(`Квест виконано! Отримано ${reward} монет.`);
+            }
+        }, 3000); // Імітація перевірки (3 секунди)
+    }
+
+    // ЛОГІКА ДРУЗІВ
+    function inviteFriend() {
+        const link = `https://t.me/raccoon_coin_tap_bot/RACCOON_TAP_APP?startapp=${userId}`;
+        const text = encodeURIComponent("Грай зі мною та отримай бонуси!");
+        tg.openTelegramLink(`https://t.me/share/url?url=${link}&text=${text}`);
+    }
+
+    function copyRefLink() {
+        const link = `https://t.me/raccoon_coin_tap_bot/RACCOON_TAP_APP?startapp=${userId}`;
+        navigator.clipboard.writeText(link).then(() => {
+            tg.showAlert("Посилання скопійовано!");
+        }).catch(err => {
+            console.error('Не вдалося скопіювати', err);
+        });
+    }
+
+    // НАВІГАЦІЯ
     function nav(idx) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -245,25 +355,33 @@
         document.getElementById('capsule').style.left = (idx * 20) + "%";
     }
 
+    // ЛІДЕРБОРД
     async function openTop() {
         document.getElementById('top-modal').style.display = 'flex';
         const container = document.getElementById('top-content');
-        container.innerHTML = "<p style='text-align:center; opacity:0.5;'>Завантаження...</p>";
+        container.innerHTML = "<p style='text-align:center; opacity:0.5; margin-top:20px;'>Завантаження бази...</p>";
         if(!db) return;
-        const { data } = await db.from('players').select('username, score_top').order('score_top', {ascending: false}).limit(10);
-        if(data) {
-            container.innerHTML = data.map((p, i) => `
-                <div class="top-item">
-                    <span class="top-rank">#${i+1}</span>
-                    <span style="flex:1">${p.username}</span>
-                    <b style="color:var(--yellow)">${Math.floor(p.score_top).toLocaleString()}</b>
-                </div>
-            `).join('');
+        try {
+            const { data } = await db.from('players').select('username, score_top').order('score_top', {ascending: false}).limit(10);
+            if(data && data.length > 0) {
+                container.innerHTML = data.map((p, i) => `
+                    <div class="top-item">
+                        <span class="top-rank">#${i+1}</span>
+                        <span style="flex:1">${p.username}</span>
+                        <b style="color:var(--yellow)">${Math.floor(p.score_top).toLocaleString()}</b>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = "<p style='text-align:center; opacity:0.5; margin-top:20px;'>Ще немає гравців</p>";
+            }
+        } catch(e) {
+            container.innerHTML = "<p style='text-align:center; color:var(--crit); margin-top:20px;'>Помилка завантаження</p>";
         }
     }
 
     function closeTop() { document.getElementById('top-modal').style.display = 'none'; }
 
+    // БОНУСНА ГРА
     function openBonus() { if(state.bonusLimit > 0) document.getElementById('bonus-win').style.display = 'flex'; }
 
     function startBonusNow() {
@@ -281,11 +399,15 @@
     function finishBonus() {
         isB = false;
         let win = bc * state.power * 10;
-        state.score += win; state.bonusLimit--;
+        state.score += win; state.totalEarned += win; state.bonusLimit--;
+        document.getElementById('b-ready').style.display = 'block';
+        document.getElementById('b-active').style.display = 'none';
         document.getElementById('bonus-win').style.display = 'none';
         updateUI(); saveData();
+        tg.showAlert(`Бонус завершено!\nТи наклікав: ${bc} разів.\nОтримано: ${win} монет.`);
     }
 
+    // ІВЕНТИ
     function setupClick(id, h) {
         const el = document.getElementById(id);
         el.addEventListener('touchstart', h, {passive: false});
@@ -298,10 +420,23 @@
         bc++; document.getElementById('b-clicks').innerText = `КЛІКІВ: ${bc}`;
     });
 
+    // ІГРОВИЙ ЦИКЛ (Енергія + Бот)
     setInterval(() => {
+        // Відновлення енергії
         if(state.energy < state.max) state.energy = Math.min(state.max, state.energy + 2);
+        
+        // Робота авто-бота (додає монети щосекунди залежно від рівня)
+        if(state.lvls.bot > 0) {
+            let botIncome = state.lvls.bot * 2; // 2 монети за кожен рівень бота на секунду
+            state.score += botIncome;
+            state.totalEarned += botIncome;
+        }
+        
         updateUI();
     }, 1000);
+
+    // Автозбереження кожні 10 секунд
+    setInterval(saveData, 10000);
 
     loadData();
     tg.expand();

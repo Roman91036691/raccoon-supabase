@@ -298,45 +298,82 @@
         else tg.showAlert("Ліміт вичерпано. Приходь завтра!");
     }
 
-    // === ВИПРАВЛЕНИЙ ТАЙМЕР ===
-    const BONUS_DURATION = 7.5; // Тривалість бонусу в секундах
-    let bonusStartTime;
+// === ПОВНІСТЮ ВИПРАВЛЕНИЙ БЛОК БОНУСУ ===
+const BONUS_DURATION = 7.5; 
+let bonusStartTime;
+let bonusInterval; // Додаємо змінну для інтервалу, щоб його можна було примусово зупинити
 
-    function startBonusNow() {
-        document.getElementById('b-ready').style.display = 'none';
-        document.getElementById('b-active').style.display = 'block';
-        isB = true;
+function openBonus() {
+    if(state.bonusLimit > 0) {
+        // ПРИМУСОВЕ СКИНУТИ ВСЕ ПЕРЕД ВІДКРИТТЯМ
+        isB = false; 
         bc = 0;
         document.getElementById('b-clicks').innerText = "КЛІКІВ: 0";
         document.getElementById('b-timer').innerText = BONUS_DURATION.toFixed(1);
-
-        bonusStartTime = performance.now(); // Запам'ятовуємо час початку
-
-        // Використовуємо більш частий інтервал для плавності оновлення
-        // Але обчислюємо час на основі фактичної різниці
-        const itv = setInterval(() => {
-            const currentTime = performance.now();
-            const elapsedTime = (currentTime - bonusStartTime) / 1000; // минуло секунд
-            const timeLeft = Math.max(0, BONUS_DURATION - elapsedTime); // залишилося секунд
-
-            document.getElementById('b-timer').innerText = timeLeft.toFixed(1);
-
-            if (timeLeft <= 0) { // Перевірка закінчення часу
-                clearInterval(itv); // Зупинка інтервалу
-                finishBonus(); // Завершення бонусу
-            }
-        }, 30); // Оновлюємо кожні 30мс для плавності (приблизно 33 fps)
+        
+        // Показуємо вікно та кнопку "ПОЧАТИ"
+        document.getElementById('bonus-win').style.display = 'flex';
+        document.getElementById('b-ready').style.display = 'block';
+        document.getElementById('b-active').style.display = 'none';
+    } else {
+        tg.showAlert("Ліміт вичерпано. Приходь завтра!");
     }
+}
 
-    function finishBonus() {
-        let win = bc * state.power * 10;
-        state.score += win; state.totalEarned += win; state.bonusEarned += win;
-        state.bonusGames++; state.bonusLimit--; isB = false;
-        document.getElementById('bonus-win').style.display = 'none';
-        tg.showAlert(`Гарна робота! +${win.toLocaleString()} монет`);
-        updateUI(); saveData();
-    }
+function startBonusNow() {
+    // 1. Скидаємо змінні гри
+    bc = 0;
+    isB = true;
+    
+    // 2. Оновлюємо інтерфейс до початкового стану
+    document.getElementById('b-clicks').innerText = "КЛІКІВ: 0";
+    document.getElementById('b-timer').innerText = BONUS_DURATION.toFixed(1);
+    
+    // 3. Перемикаємо екрани
+    document.getElementById('b-ready').style.display = 'none';
+    document.getElementById('b-active').style.display = 'block';
 
+    // 4. Запускаємо час
+    bonusStartTime = performance.now();
+
+    // Очищаємо старий інтервал, якщо він раптом не вмер (про всяк випадок)
+    if(bonusInterval) clearInterval(bonusInterval);
+
+    bonusInterval = setInterval(() => {
+        const currentTime = performance.now();
+        const elapsedTime = (currentTime - bonusStartTime) / 1000;
+        const timeLeft = Math.max(0, BONUS_DURATION - elapsedTime);
+
+        document.getElementById('b-timer').innerText = timeLeft.toFixed(1);
+
+        if (timeLeft <= 0) {
+            clearInterval(bonusInterval);
+            finishBonus();
+        }
+    }, 30);
+}
+
+function finishBonus() {
+    isB = false; // Вимикаємо режим бонусу
+    let win = bc * state.power * 10;
+    
+    state.score += win; 
+    state.totalEarned += win; 
+    state.bonusEarned += win;
+    state.bonusGames++; 
+    state.bonusLimit--; 
+
+    document.getElementById('bonus-win').style.display = 'none';
+    
+    // Скидаємо текст, щоб при наступному заході не було старих цифр
+    document.getElementById('b-clicks').innerText = "КЛІКІВ: 0";
+    document.getElementById('b-timer').innerText = "0.0";
+
+    tg.showAlert(`Гарна робота! +${win.toLocaleString()} монет`);
+    updateUI(); 
+    saveData();
+}
+    
     function nav(idx) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));

@@ -3,61 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Raccoon Coin: Final Edition</title>
+    <title>Raccoon Coin: Fortune Edition</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
 
     <style>
         :root {
             --yellow: #fde047; --gold: #fbbf24; --crit: #ff4757; 
-            --glass: rgba(255, 255, 255, 0.08); --border: rgba(255, 255, 255, 0.15);
+            --glass: rgba(255, 255, 255, 0.08); --border: rgba(255, 255, 255, 0.12);
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; user-select: none; }
-        body { font-family: -apple-system, sans-serif; background: #000; color: #fff; height: 100dvh; overflow: hidden; }
-        #app { width: 100%; height: 100%; display: flex; flex-direction: column; background: radial-gradient(circle at top, #222 0%, #000 100%); position: relative; }
+        body { font-family: 'Inter', -apple-system, sans-serif; background: #000; color: #fff; height: 100dvh; overflow: hidden; }
+        
+        #app { width: 100%; height: 100%; display: flex; flex-direction: column; background: radial-gradient(circle at top, #1a1a1a 0%, #000 100%); position: relative; }
 
         /* PUSH NOTIFICATIONS */
-        .push-container { position: fixed; top: 20px; left: 15px; right: 15px; z-index: 10000; pointer-events: none; display: flex; flex-direction: column; gap: 10px; }
+        .push-container { position: fixed; top: 15px; left: 15px; right: 15px; z-index: 10000; pointer-events: none; display: flex; flex-direction: column; gap: 10px; }
         .push-note { 
-            pointer-events: auto; padding: 16px; border-radius: 20px; 
-            background: rgba(40, 40, 40, 0.5); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            transform: translateY(-150px); opacity: 0; transition: 0.4s cubic-bezier(0.17, 0.89, 0.32, 1.2);
+            pointer-events: auto; padding: 16px 20px; border-radius: 20px; 
+            background: rgba(30, 30, 30, 0.95); backdrop-filter: blur(15px);
+            border: 1px solid var(--border); font-weight: 700; text-align: center; font-size: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: pushIn 0.5s cubic-bezier(0.17, 0.89, 0.32, 1.25) forwards;
         }
-        .push-note.show { transform: translateY(0); opacity: 1; }
-        .push-note.swipe-left { transform: translateX(-120%) rotate(-5deg); opacity: 0; }
-        .push-note.swipe-right { transform: translateX(120%) rotate(5deg); opacity: 0; }
+        @keyframes pushIn { 0% { transform: translateY(-100%) scale(0.8); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+        .push-note.hide { animation: pushOut 0.4s ease forwards; }
+        @keyframes pushOut { to { transform: translateY(-150%) scale(0.9); opacity: 0; } }
 
-        /* UI */
-        .header-tools { position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; z-index: 500; }
-        #score { font-size: 54px; font-weight: 900; color: var(--yellow); text-align: center; margin-top: 60px; text-shadow: 0 0 20px rgba(253, 224, 71, 0.3); }
+        /* HEADER */
+        .header-tools { position: absolute; top: 20px; right: 20px; display: flex; gap: 15px; z-index: 500; align-items: center; }
+        .header-icon { font-size: 26px; cursor: pointer; position: relative; transition: transform 0.1s; }
+        .header-icon:active { transform: scale(0.9); }
+        .badge { position: absolute; top: -6px; right: -8px; background: var(--crit); color: #fff; font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 10px; }
         
-        .coin-box { flex: 1; display: flex; align-items: center; justify-content: center; z-index: 100; }
-        .coin-img { width: 70vw; max-width: 280px; transition: transform 0.05s; filter: drop-shadow(0 0 20px rgba(253, 224, 71, 0.1)); }
-        .coin-img:active { transform: scale(0.92); }
+        #user-display { font-weight: 800; font-size: 13px; color: var(--yellow); text-transform: uppercase; margin-bottom: 5px; }
+        #user-display.syncing { animation: pulse 1s infinite alternate; }
+        @keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }
 
-        .content { flex: 1; overflow-y: auto; padding-bottom: 120px; }
-        .page { display: none; padding: 20px; height: 100%; }
-        .page.active { display: flex; flex-direction: column; }
+        #score { 
+            font-size: 52px; font-weight: 900; color: #fff; text-align: center; 
+            margin-top: 35px; font-variant-numeric: tabular-nums;
+            text-shadow: 0 4px 20px rgba(253, 224, 71, 0.15);
+        }
+        
+        /* CONTENT */
+        .content { flex: 1; overflow: hidden; display: flex; flex-direction: column; padding-bottom: 100px; }
+        .page { display: none; padding: 20px; height: 100%; flex-direction: column; animation: pageFade 0.3s ease; }
+        .page.active { display: flex; }
+        @keyframes pageFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .card { background: var(--glass); border: 1px solid var(--border); border-radius: 22px; padding: 18px; margin-bottom: 12px; }
-        .btn-ui { background: linear-gradient(135deg, var(--yellow), var(--gold)); color: #000; border: none; padding: 14px; border-radius: 16px; font-weight: 800; cursor: pointer; }
-        .btn-ui:disabled { background: #333; color: #666; cursor: default; }
+        .page-title-box { display: flex; justify-content: space-between; align-items: center; margin-top: 45px; margin-bottom: 20px; }
+        .page-title { font-weight: 900; font-size: 28px; }
+
+        .scroll-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 30px; -webkit-overflow-scrolling: touch; }
+        .card { background: var(--glass); border: 1px solid var(--border); border-radius: 20px; padding: 18px; flex-shrink: 0; }
+        .btn-ui { background: linear-gradient(135deg, var(--yellow), var(--gold)); color: #000; border: none; padding: 14px; border-radius: 14px; font-weight: 800; font-size: 14px; cursor: pointer; font-family: 'Inter'; }
+        .btn-ui:active { filter: brightness(0.9); }
+        .btn-ui:disabled { background: #333 !important; color: #666 !important; cursor: not-allowed; }
+
+        /* COIN */
+        .coin-box { flex: 1; display: flex; align-items: center; justify-content: center; perspective: 1200px; }
+        .coin-img { width: 72vw; max-width: 320px; transition: transform 0.1s ease-out; filter: drop-shadow(0 10px 40px rgba(0,0,0,0.8)); will-change: transform; touch-action: none; }
 
         /* NAV */
-        nav { position: fixed; bottom: 20px; left: 15px; right: 15px; height: 75px; background: rgba(20, 20, 20, 0.8); border: 1px solid var(--border); border-radius: 25px; backdrop-filter: blur(20px); z-index: 1000; }
+        nav { 
+            position: fixed; bottom: 25px; left: 15px; right: 15px; height: 72px; 
+            background: rgba(20, 20, 20, 0.95); border: 1px solid var(--border); 
+            border-radius: 24px; backdrop-filter: blur(20px); z-index: 1000; padding: 0 6px; 
+        }
         .nav-grid { display: flex; height: 100%; position: relative; align-items: center; }
-        .nav-item { flex: 1; display: flex; justify-content: center; opacity: 0.3; transition: 0.3s; }
-        .nav-item.active { opacity: 1; }
-        .nav-item img { width: 28px; }
-        .capsule { position: absolute; width: 20%; height: 55px; border: 2px solid var(--yellow); border-radius: 20px; transition: 0.3s cubic-bezier(0.17, 0.89, 0.32, 1.2); z-index: 1; background: rgba(253, 224, 71, 0.1); }
+        .nav-item { flex: 1; display: flex; justify-content: center; align-items: center; z-index: 5; opacity: 0.35; transition: 0.3s; cursor: pointer; }
+        .nav-item.active { opacity: 1; transform: scale(1.05); }
+        .nav-item img { width: 26px; height: 26px; }
 
-        /* MODALS */
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: none; flex-direction: column; padding: 30px 20px; backdrop-filter: blur(15px); }
-        .tap-pop { position: fixed; pointer-events: none; font-weight: 900; font-size: 30px; z-index: 5000; animation: popUp 0.6s forwards; }
-        @keyframes popUp { 0% { opacity: 0; transform: translateY(0) scale(0.5); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-100px) scale(1.2); } }
+        .capsule { 
+            position: absolute; width: calc(20% - 12px); height: 56px; 
+            border: 2px solid var(--yellow); border-radius: 18px; 
+            transition: 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.15); z-index: 1; 
+            background: rgba(253, 224, 71, 0.08); left: 6px; 
+        }
+
+        .tap-pop { position: fixed; pointer-events: none; font-weight: 900; font-size: 34px; z-index: 5000; animation: popUp 0.6s forwards; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        @keyframes popUp { 0% { opacity: 0; transform: translateY(0) scale(0.6); } 15% { opacity: 1; } 100% { opacity: 0; transform: translateY(-120px) scale(1.1); } }
+        
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 2000; display: none; flex-direction: column; padding: 30px 20px; backdrop-filter: blur(15px); animation: pageFade 0.2s ease; overflow-y: auto; }
+
+        /* WHEEL MECHANICS STYLE */
+        .wheel-container { position: relative; width: 310px; height: 310px; margin: 25px auto; display: flex; align-items: center; justify-content: center; }
+        .wheel-pointer { 
+            position: absolute; top: -12px; left: 50%; transform: translateX(-50%); 
+            width: 0; height: 0; border-left: 14px solid transparent; border-right: 14px solid transparent; 
+            border-top: 26px solid var(--yellow); z-index: 50; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+        }
+        .wheel-btn {
+            position: absolute; width: 80px; height: 80px; background: linear-gradient(135deg, #fff, #e2e8f0);
+            border: 5px solid var(--gold); border-radius: 50%; color: #000; font-weight: 900; font-size: 11px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 40;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.6); cursor: pointer; text-align: center; line-height: 1.2;
+        }
+        #wheel-canvas { width: 100%; height: 100%; border-radius: 50%; box-shadow: 0 0 35px rgba(253, 224, 71, 0.15); }
     </style>
 </head>
 <body>
@@ -66,55 +113,59 @@
     <div id="push-box" class="push-container"></div>
 
     <div class="header-tools">
-        <div onclick="openModal('promo-modal')" style="font-size:26px;">🎫</div>
-        <div onclick="openTop()" style="font-size:26px;">🏆</div>
-        <div onclick="openBonus()" style="position:relative; font-size:26px;">
-            🎁 <small id="b-limit" style="position:absolute; top:-5px; right:-5px; background:var(--crit); color:#fff; font-size:10px; padding:2px 5px; border-radius:10px;">3</small>
-        </div>
+        <div class="header-icon" onclick="openModal('promo-modal')">🎫</div>
+        <div class="header-icon" onclick="openTop()">🏆</div>
+        <div class="header-icon" onclick="openBonus()">🎡 <span id="b-limit" class="badge">3</span></div>
     </div>
 
     <div class="content">
         <div class="page active" id="p0">
+            <div id="user-display">ГРАВЕЦЬ</div>
             <div id="score">0</div>
-            <div class="coin-box"><img id="coin" class="coin-img" src="https://i.ibb.co/fYzVqbLB/file-00000000cb70720a92f5b0192d2b39a4.png"></div>
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--yellow); font-weight:bold; margin-bottom:5px;">
-                    <span>ЕНЕРГІЯ</span> <span id="energy-txt">1000/1000</span>
+            <div class="coin-box">
+                <img id="coin" class="coin-img" src="https://i.ibb.co/fYzVqbLB/file-00000000cb70720a92f5b0192d2b39a4.png">
+            </div>
+            <div class="card" style="margin-top:auto; padding: 15px; background: rgba(255,255,255,0.04);">
+                <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--yellow); font-weight:800; margin-bottom:8px;">
+                    <span>ЕНЕРГІЯ</span> <span id="energy-txt">1000 / 1000</span>
                 </div>
-                <div style="height:8px; background:#111; border-radius:10px; overflow:hidden; border:1px solid var(--border);">
-                    <div id="bar-fill" style="width:100%; height:100%; background:var(--yellow);"></div>
+                <div style="height:6px; background:#111; border-radius:10px; overflow:hidden;">
+                    <div id="bar-fill" style="width:100%; height:100%; background:var(--yellow); transition:0.2s;"></div>
                 </div>
             </div>
         </div>
 
         <div class="page" id="p1">
-            <h2 style="margin-bottom:20px;">Магазин</h2>
-            <div id="shop-list"></div>
+            <div class="page-title-box"><h2 class="page-title">Магазин</h2></div>
+            <div id="shop-list" class="scroll-list"></div>
         </div>
 
         <div class="page" id="p2">
-            <h2 style="margin-bottom:15px;">Команда</h2>
-            <div class="card" style="text-align:center;">
-                <p style="opacity:0.7; margin-bottom:15px; font-size:14px;">+10,000 монет за кожного друга!</p>
-                <button class="btn-ui" style="width:100%;" onclick="inviteFriend()">🔗 ЗАПРОСИТИ</button>
+            <div class="page-title-box">
+                <h2 class="page-title">Команда</h2>
+                <div onclick="loadFriends()" style="background:var(--glass); padding:8px 14px; border-radius:12px; font-size:13px; font-weight:600; cursor:pointer;">🔄 Оновити</div>
             </div>
-            <div id="friends-list"></div>
+            <div class="card" style="text-align:center; margin-bottom:15px; background: rgba(253, 224, 71, 0.05); border-color: rgba(253, 224, 71, 0.2);">
+                <p style="opacity:0.8; margin-bottom:12px; font-size:15px;">Отримай <b>+10,000</b> за кожного друга!</p>
+                <button class="btn-ui" style="width:100%; font-size:16px;" onclick="inviteFriend()">🔗 ЗАПРОСИТИ ДРУГА</button>
+            </div>
+            <div id="friends-list" class="scroll-list"></div>
         </div>
 
         <div class="page" id="p3">
-            <h2 style="margin-bottom:20px;">Квести</h2>
-            <div id="quest-list"></div>
+            <div class="page-title-box"><h2 class="page-title">Квести</h2></div>
+            <div id="quest-list" class="scroll-list"></div>
         </div>
 
         <div class="page" id="p4">
-            <h2 style="margin-bottom:20px;">Профіль</h2>
-            <div id="stat-list"></div>
+            <div class="page-title-box"><h2 class="page-title">Профіль</h2></div>
+            <div id="stat-list" class="scroll-list"></div>
         </div>
     </div>
 
     <nav>
         <div class="nav-grid">
-            <div id="capsule" class="capsule" style="left:0;"></div>
+            <div id="capsule" class="capsule"></div>
             <div class="nav-item active" onclick="nav(0)"><img src="https://i.ibb.co/chM9Ftgt/retouch-2026031610215594.png"></div>
             <div class="nav-item" onclick="nav(1)"><img src="https://i.ibb.co/xtM6BCyd/shopping-cart-1f6d2.png"></div>
             <div class="nav-item" onclick="nav(2)"><img src="https://i.ibb.co/mCWNRzgf/busts-in-silhouette-1f465.png"></div>
@@ -124,33 +175,45 @@
     </nav>
 </div>
 
-<div id="promo-modal" class="modal" style="justify-content:center;">
-    <div class="card" style="text-align:center;">
-        <h2 style="margin-bottom:20px;">ПРОМОКОД</h2>
-        <input type="text" id="promo-input" style="width:100%; padding:15px; border-radius:12px; background:#000; border:1px solid var(--border); color:#fff; text-align:center; margin-bottom:15px;" placeholder="ВВЕДІТЬ ТУТ">
-        <button class="btn-ui" style="width:100%;" onclick="checkPromo()">АКТИВУВАТИ</button>
-        <p onclick="closeModal('promo-modal')" style="margin-top:20px; opacity:0.5;">Закрити</p>
-    </div>
-</div>
-
 <div id="top-modal" class="modal">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h2>🏆 РЕЙТИНГ</h2>
-        <span onclick="closeModal('top-modal')" style="font-size:30px;">✕</span>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+        <h2 style="font-weight:900; font-size:24px;">🏆 ТОП ГРАВЦІВ</h2>
+        <span onclick="closeModal('top-modal')" style="font-size:32px; opacity:0.5; cursor:pointer;">✕</span>
     </div>
-    <div id="top-content"></div>
+    <div id="top-content" class="scroll-list"></div>
+    <div id="my-rank" style="margin-top:20px; padding-top:15px; border-top:1px solid var(--border);"></div>
 </div>
 
-<div id="bonus-win" class="modal" style="justify-content:center; align-items:center;">
-    <div id="b-ready" style="text-align:center;">
-        <h1 style="color:var(--yellow); font-size:45px;">БОНУС x10!</h1>
-        <p style="margin:20px 0; opacity:0.8;">7.5 секунд шаленого тапу!</p>
-        <button class="btn-ui" onclick="startBonusNow()" style="padding:15px 40px;">🔥 ПОЇХАЛИ</button>
+<div id="promo-modal" class="modal" style="justify-content:center;">
+    <div class="card" style="text-align:center; position:relative;">
+        <h2 style="font-size:24px; margin-bottom:10px;">🎫 ПРОМОКОД</h2>
+        <p style="opacity:0.6; font-size:13px; margin-bottom:20px;">Введіть секретний код для отримання бонусів</p>
+        <input type="text" id="promo-input" placeholder="ВВЕДІТЬ КОД ТУТ" style="width:100%; padding:16px; border-radius:14px; background:rgba(0,0,0,0.4); border:1px solid var(--border); color:var(--yellow); font-weight:800; text-align:center; margin-bottom:15px; font-family:'Inter'; font-size:16px; text-transform:uppercase;">
+        <p id="promo-status" style="font-size:13px; font-weight:600; margin-bottom:15px; height:15px;"></p>
+        <button class="btn-ui" style="width:100%; margin-bottom:15px;" onclick="activatePromo()">АКТИВУВАТИ</button>
+        <p onclick="closeModal('promo-modal')" style="opacity:0.5; cursor:pointer; font-weight:600; font-size:14px;">Скасувати</p>
     </div>
-    <div id="b-active" style="display:none; text-align:center;">
-        <div id="b-timer" style="font-size:80px; color:var(--yellow); font-weight:900;">7.5</div>
-        <div id="b-clicks" style="font-size:20px;">КЛІКИ: 0</div>
-        <div id="bonus-touch" style="position:fixed; inset:0; z-index:5000;"></div>
+</div>
+
+<div id="wheel-modal" class="modal" style="justify-content:center; align-items:center;">
+    <div class="card" style="width:100%; max-width:360px; text-align:center; background: rgba(15,15,15,0.95); border: 1px solid var(--border); position:relative;">
+        <span onclick="closeModal('wheel-modal')" style="position:absolute; top:15px; right:20px; font-size:24px; opacity:0.5; cursor:pointer;">✕</span>
+        <h2 style="font-weight:900; font-size:22px; color:var(--yellow);">🎡 РУЛЕТКА ФОРТУНИ</h2>
+        <p style="opacity:0.6; font-size:12px; margin-top:4px;">Крути колесо та вигравай супер-призи!</p>
+        
+        <div class="wheel-container">
+            <div class="wheel-pointer"></div>
+            <div class="wheel-btn" onclick="spinWheel()">
+                <span>TAP TO</span>
+                <strong style="font-size:13px; color:var(--gold);">SPIN</strong>
+            </div>
+            <canvas id="wheel-canvas" width="320" height="320"></canvas>
+        </div>
+
+        <div style="background:rgba(0,0,0,0.3); padding:12px; border-radius:14px; border:1px solid var(--border);">
+            <span style="font-size:14px; font-weight:600; opacity:0.8;">Доступно спінів: </span>
+            <b id="wheel-spins-count" style="color:var(--yellow); font-size:16px;">3</b>
+        </div>
     </div>
 </div>
 
@@ -162,218 +225,355 @@
     let tg = window.Telegram.WebApp;
     let userId = tg.initDataUnsafe?.user?.id?.toString() || "dev_user";
     let userName = (tg.initDataUnsafe?.user?.first_name || "Гравець").toUpperCase();
-    let startParam = tg.initDataUnsafe?.start_param || null;
+    let LOCAL_KEY = `rc_state_v4_${userId}`;
 
     let state = {
         score: 0, energy: 1000, max: 1000, power: 1, 
-        totalEarned: 0, totalClicks: 0, bonusLimit: 3, lastBonusDate: "",
+        totalEarned: 0, totalClicks: 0, bonusLimit: 3, lastSpinDate: "",
         lvls: { tap: 1, energy: 1, bot: 0 },
-        usedPromos: [], doneQuests: [], ref_by: null
+        doneQuests: [], usedPromos: [], updated_at: Date.now()
     };
 
     const QUESTS = [
-        { id: 'q1', name: 'Перша сотня', req: 100, type: 'clicks', reward: 5000 },
-        { id: 'q2', name: 'Клікер-маніяк', req: 1000, type: 'clicks', reward: 25000 },
-        { id: 'q3', name: 'Багатій', req: 50000, type: 'score', reward: 15000 }
+        { id: 'q1', name: 'Перші кроки', req: 100, type: 'clicks', reward: 5000 },
+        { id: 'q2', name: 'Досвідчений клікер', req: 1000, type: 'clicks', reward: 25000 },
+        { id: 'q3', name: 'Маленький капітал', req: 50000, type: 'score', reward: 15000 },
+        { id: 'q4', name: 'Мільйонер', req: 1000000, type: 'score', reward: 250000 }
     ];
 
-    let isBonus = false, bonusCount = 0, bInterval;
+    // Призи для колеса фортуни
+    const PRIZES = [
+        { text: "1 000 🪙", type: "score", value: 1000, color: "#1c1917" },
+        { text: "5 000 🪙", type: "score", value: 5000, color: "#7c3aed" },
+        { text: "10 000 🪙", type: "score", value: 10000, color: "#2563eb" },
+        { text: "25 000 🪙", type: "score", value: 25000, color: "#16a34a" },
+        { text: "50 000 🪙", type: "score", value: 50000, color: "#ea580c" },
+        { text: "100К 🔥", type: "score", value: 100000, color: "#dc2626" },
+        { text: "+500 ⚡", type: "energy", value: 500, color: "#0891b2" },
+        { text: "+2 ТАП 💪", type: "power", value: 2, color: "#ca8a04" }
+    ];
+
+    let isSpinning = false;
+    let wheelRotation = 0;
 
     function showPush(text) {
         const box = document.getElementById('push-box');
         const note = document.createElement('div');
         note.className = 'push-note'; note.innerText = text;
         box.appendChild(note);
-        setTimeout(() => note.classList.add('show'), 50);
+        setTimeout(() => { note.classList.add('hide'); setTimeout(() => note.remove(), 500); }, 3000);
+    }
 
-        let startX = 0;
-        note.addEventListener('touchstart', (e) => startX = e.touches[0].clientX);
-        note.addEventListener('touchmove', (e) => {
-            let move = e.touches[0].clientX - startX;
-            if (Math.abs(move) > 10) { note.style.transform = `translateX(${move}px)`; note.style.opacity = 1 - Math.abs(move)/200; }
-        });
-        note.addEventListener('touchend', (e) => {
-            if (Math.abs(e.changedTouches[0].clientX - startX) > 80) {
-                note.classList.add(e.changedTouches[0].clientX - startX > 0 ? 'swipe-right' : 'swipe-left');
-                setTimeout(() => note.remove(), 300);
-            } else { note.style.transform = ''; note.style.opacity = ''; }
-        });
-        setTimeout(() => { if(note.parentNode) { note.classList.remove('show'); setTimeout(()=>note.remove(), 400); } }, 4000);
+    async function syncCloud() {
+        document.getElementById('user-display').classList.add('syncing');
+        try { 
+            await db.from('players').upsert({ id: userId, username: userName, state: state, score_top: Math.floor(state.score) }, { onConflict: 'id' }); 
+        } catch(e) {}
+        setTimeout(() => document.getElementById('user-display').classList.remove('syncing'), 800);
+    }
+
+    function saveLocal() {
+        state.updated_at = Date.now();
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
     }
 
     async function init() {
+        document.getElementById('user-display').innerText = userName;
+        let local = localStorage.getItem(LOCAL_KEY);
+        if(local) state = JSON.parse(local);
+        
         try {
-            let { data } = await db.from('players').select('*').eq('id', userId).maybeSingle();
-            if (data) { state = { ...state, ...data.state }; }
-            else {
-                if (startParam && startParam !== userId) { state.ref_by = startParam; state.score = 10000; showPush("🎁 Бонус 10к за посилання!"); }
-                await save();
-            }
+            const { data } = await db.from('players').select('state').eq('id', userId).maybeSingle();
+            if (data?.state && data.state.updated_at > state.updated_at) state = data.state;
         } catch(e) {}
-        update();
-        loadFriends();
-    }
 
-    async function save() {
-        try { await db.from('players').upsert({ id: userId, username: userName, state: state, score_top: Math.floor(state.score), ref_by: state.ref_by }); } catch(e) {}
-    }
-
-    async function loadFriends() {
-        const { data } = await db.from('players').select('username').eq('ref_by', userId);
-        if (data) {
-            document.getElementById('friends-list').innerHTML = data.map(f => `
-                <div class="card" style="display:flex; justify-content:space-between;"><b>${f.username}</b> <span>+10,000</span></div>
-            `).join('');
+        // Перевірка щоденного скидання спінів (3 безкоштовні на день)
+        let today = new Date().toISOString().slice(0, 10);
+        if (state.lastSpinDate !== today) {
+            state.bonusLimit = 3;
+            state.lastSpinDate = today;
+            saveLocal();
         }
+
+        update();
+        setInterval(() => {
+            if(state.energy < state.max) { state.energy = Math.min(state.max, state.energy + 2); update(); }
+            if(state.lvls.bot > 0) { state.score += state.lvls.bot; update(); }
+        }, 1000);
+        setInterval(syncCloud, 15000);
     }
 
     function update() {
-        document.getElementById('score').innerText = Math.floor(state.score).toLocaleString();
-        document.getElementById('energy-txt').innerText = `${state.energy}/${state.max}`;
+        document.getElementById('score').innerText = Math.floor(state.score).toLocaleString().replace(/,/g, ' ');
+        document.getElementById('energy-txt').innerText = `${Math.floor(state.energy)} / ${state.max}`;
         document.getElementById('bar-fill').style.width = (state.energy/state.max)*100 + "%";
         document.getElementById('b-limit').innerText = state.bonusLimit;
+        document.getElementById('wheel-spins-count').innerText = state.bonusLimit;
 
-        // МАГАЗИН
-        const shop = [{id:'tap', n:'Тап', b:150}, {id:'energy', n:'Енергія', b:250}, {id:'bot', n:'Бот', b:2000}];
-        document.getElementById('shop-list').innerHTML = shop.map(i => {
+        // МАГАЗИН (З НОВИМ ТОВАРОМ ДЛЯ СПІНІВ)
+        const items = [{id:'tap', n:'Сила тапу', b:150}, {id:'energy', n:'Запас енергії', b:250}, {id:'bot', n:'Авто-Бот', b:2000}];
+        let shopHTML = items.map(i => {
             const cost = Math.floor(i.b * Math.pow(1.6, state.lvls[i.id]));
             return `<div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-                <div><b>${i.n}</b><br><small>Lvl ${state.lvls[i.id]}</small></div>
-                <button class="btn-ui" onclick="buy('${i.id}', ${cost})" ${state.score<cost?'disabled':''}>💰 ${cost}</button>
+                <div><b style="font-size:16px;">${i.n}</b><br><small style="opacity:0.6; font-size:13px;">Рівень ${state.lvls[i.id]}</small></div>
+                <button class="btn-ui" style="width:auto; padding:10px 18px" onclick="buy('${i.id}', '${i.n}', ${cost})" ${state.score<cost?'disabled':''}>${cost.toLocaleString()} 🪙</button>
             </div>`;
         }).join('');
+
+        // Додаємо квиток на спін в магазин
+        const spinTicketCost = 20000;
+        shopHTML += `<div class="card" style="display:flex; justify-content:space-between; align-items:center; border-color: rgba(124, 58, 237, 0.3); background: rgba(124, 58, 237, 0.03);">
+            <div><b style="font-size:16px;">Квиток на Спін 🎡</b><br><small style="opacity:0.6; font-size:13px;">+1 спроба в Рулетку Фортуни</small></div>
+            <button class="btn-ui" style="width:auto; padding:10px 18px; background: linear-gradient(135deg, #a855f7, #7c3aed); color:#fff;" onclick="buySpinTicket(${spinTicketCost})" ${state.score<spinTicketCost?'disabled':''}>${spinTicketCost.toLocaleString()} 🪙</button>
+        </div>`;
+
+        document.getElementById('shop-list').innerHTML = shopHTML;
 
         // КВЕСТИ
         document.getElementById('quest-list').innerHTML = QUESTS.map(q => {
             const done = state.doneQuests.includes(q.id);
-            const progress = q.type === 'clicks' ? state.totalClicks : state.score;
-            const ready = progress >= q.req;
-            return `<div class="card" style="display:flex; justify-content:space-between; align-items:center; opacity: ${done?0.5:1}">
-                <div><b>${q.name}</b><br><small>${ready ? 'ГОТОВО' : progress + '/' + q.req}</small></div>
-                <button class="btn-ui" style="padding:8px 15px;" onclick="claimQuest('${q.id}', ${q.reward})" ${(!ready || done) ? 'disabled' : ''}>${done ? '✅' : 'ЗАБРАТИ'}</button>
+            let prog = q.type === 'clicks' ? state.totalClicks : Math.floor(state.score);
+            const ready = prog >= q.req;
+            return `<div class="card" style="display:flex; justify-content:space-between; align-items:center; opacity:${done?0.5:1}">
+                <div style="max-width: 65%">
+                    <b style="font-size:15px">${q.name}</b><br>
+                    <small style="opacity:0.7">${done ? '✅ Виконано' : prog.toLocaleString() + ' / ' + q.req.toLocaleString()}</small>
+                </div>
+                <button class="btn-ui" style="width:auto; padding:10px 15px; font-size:13px;" onclick="claimQuest('${q.id}', ${q.reward})" ${(done||!ready)?'disabled':''}>${done?'OK':'ЗІБРАТИ'}</button>
             </div>`;
         }).join('');
 
         // СТАТИСТИКА
-        const st = [["Всього", state.totalEarned], ["Кліки", state.totalClicks], ["Сила", state.power]];
-        document.getElementById('stat-list').innerHTML = st.map(s => `<div class="card" style="display:flex; justify-content:space-between;"><span>${s[0]}</span><b>${s[1]}</b></div>`).join('');
+        const stats = [
+            ["Поточний баланс", Math.floor(state.score)], 
+            ["Всього зароблено", state.totalEarned], 
+            ["Всього кліків", state.totalClicks], 
+            ["Сила тапу", state.power]
+        ];
+        document.getElementById('stat-list').innerHTML = stats.map(s => `<div class="card" style="display:flex; justify-content:space-between; padding:15px;"><span>${s[0]}</span><b style="color:var(--yellow)">${s[1].toLocaleString()}</b></div>`).join('');
     }
 
     function doTap(e) {
-        if(isBonus || state.energy < 1) return;
-        if(e.type === 'touchstart') e.preventDefault();
-        const pts = e.touches ? Array.from(e.touches) : [{clientX: e.clientX, clientY: e.clientY}];
-        pts.forEach(p => {
-            let crit = Math.random() < 0.1;
-            let val = crit ? state.power * 5 : state.power;
-            state.score += val; state.totalEarned += val; state.totalClicks++; state.energy--;
-            showPop(p.clientX, p.clientY, crit ? `🔥 ${val}` : `+${val}`, crit);
-        });
-        update();
-    }
+        if(state.energy < 1) return;
+        e.preventDefault();
+        const coin = document.getElementById('coin');
+        const touch = e.touches[0];
+        
+        const rect = coin.getBoundingClientRect();
+        const x = touch.clientX - rect.left - rect.width/2;
+        const y = touch.clientY - rect.top - rect.height/2;
+        coin.style.transform = `rotateX(${(y/rect.height)*-30}deg) rotateY(${(x/rect.width)*30}deg) scale(0.95)`;
+        setTimeout(() => coin.style.transform = 'rotateX(0) rotateY(0) scale(1)', 100);
 
-    function showPop(x, y, txt, crit) {
+        let val = state.power;
+        state.score += val; state.totalEarned += val; state.totalClicks++; state.energy--;
+        
         const d = document.createElement('div');
-        d.className = 'tap-pop'; d.innerText = txt;
-        d.style.color = crit ? 'var(--crit)' : '#fff';
-        if(crit) d.style.fontSize = '45px';
-        d.style.left = x + 'px'; d.style.top = y + 'px';
+        d.className = 'tap-pop'; d.innerText = `+${val}`;
+        d.style.left = touch.clientX + 'px'; d.style.top = touch.clientY + 'px';
         document.body.appendChild(d);
         setTimeout(() => d.remove(), 600);
-        try { tg.HapticFeedback.impactOccurred(crit ? 'heavy' : 'light'); } catch(e){}
+        
+        saveLocal(); update();
+        try { tg.HapticFeedback.impactOccurred('light'); } catch(e){}
     }
 
-    function buy(id, cost) {
+    function buy(id, name, cost) {
         if(state.score >= cost) {
             state.score -= cost; state.lvls[id]++;
-            if(id==='tap') state.power++; if(id==='energy') state.max += 500;
-            update(); save(); showPush("🛒 Куплено!");
+            if(id === 'tap') state.power++; if(id === 'energy') state.max += 500;
+            showPush(`✅ Куплено: ${name}!`);
+            saveLocal(); update(); syncCloud();
+            try { tg.HapticFeedback.notificationOccurred('success'); } catch(e){}
         }
+    }
+
+    function buySpinTicket(cost) {
+        if(state.score >= cost) {
+            state.score -= cost;
+            state.bonusLimit++;
+            showPush(`🎫 Отримано 1 квиток на прокрутку!`);
+            saveLocal(); update(); syncCloud();
+            try { tg.HapticFeedback.notificationOccurred('success'); } catch(e){}
+        }
+    }
+
+    // МАЛЮВАННЯ КАНВАСУ РУЛЕТКИ
+    function drawWheel() {
+        const canvas = document.getElementById("wheel-canvas");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const w = canvas.width;
+        const h = canvas.height;
+        const numSegments = PRIZES.length;
+        const anglePerSegment = (2 * Math.PI) / numSegments;
+
+        ctx.clearRect(0, 0, w, h);
+        
+        for (let i = 0; i < numSegments; i++) {
+            const startAngle = i * anglePerSegment;
+            const endAngle = startAngle + anglePerSegment;
+            
+            ctx.fillStyle = PRIZES[i].color;
+            ctx.beginPath();
+            ctx.moveTo(w / 2, h / 2);
+            ctx.arc(w / 2, h / 2, w / 2 - 5, startAngle, endAngle);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Текст на секторах
+            ctx.save();
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 13px Inter";
+            ctx.textAlign = "right";
+            ctx.textBaseline = "middle";
+            ctx.translate(w / 2, h / 2);
+            ctx.rotate(startAngle + anglePerSegment / 2);
+            ctx.fillText(PRIZES[i].text, w / 2 - 20, 0);
+            ctx.restore();
+        }
+    }
+
+    // ОЖИВЛЕННЯ ЛОГІКИ ОБЕРТАННЯ
+    function spinWheel() {
+        if (isSpinning) return;
+        if (state.bonusLimit <= 0) {
+            showPush("❌ Немає доступних спінів! Купи їх у магазині.");
+            return;
+        }
+
+        isSpinning = true;
+        state.bonusLimit--;
+        update(); saveLocal(); syncCloud();
+
+        const canvas = document.getElementById("wheel-canvas");
+        const prizeIndex = Math.floor(Math.random() * PRIZES.length);
+        const segmentDeg = 360 / PRIZES.length;
+        
+        // Математичний розрахунок кута зупинки під стрілкою (стрілка зверху на 270 градусах)
+        const targetDeg = 270 - (prizeIndex * segmentDeg) - (segmentDeg / 2);
+        const currentFullTurns = Math.floor(wheelRotation / 360);
+        // Запускаємо мінімум на 6 повних кіл вперед
+        wheelRotation = (currentFullTurns + 6) * 360 + targetDeg;
+
+        canvas.style.transition = "transform 4.5s cubic-bezier(0.1, 0.8, 0.1, 1)";
+        canvas.style.transform = `rotate(${wheelRotation}deg)`;
+
+        try { tg.HapticFeedback.impactOccurred('medium'); } catch(e){}
+
+        setTimeout(() => {
+            isSpinning = false;
+            applyWheelReward(PRIZES[prizeIndex]);
+        }, 4500);
+    }
+
+    function applyWheelReward(prize) {
+        if (prize.type === "score") {
+            state.score += prize.value; state.totalEarned += prize.value;
+            showPush(`🎉 Виграш: +${prize.value.toLocaleString()} монет!`);
+        } else if (prize.type === "energy") {
+            state.energy = Math.min(state.max, state.energy + prize.value);
+            showPush(`⚡ Заряд: Енергію відновлено на +${prize.value}!`);
+        } else if (prize.type === "power") {
+            state.power += prize.value; state.lvls.tap += prize.value;
+            showPush(`💪 Сила: Ступінь тапу збільшено на +${prize.value}!`);
+        }
+        saveLocal(); update(); syncCloud();
+        try { tg.HapticFeedback.notificationOccurred('success'); } catch(e){}
+    }
+
+    function openBonus() {
+        openModal('wheel-modal');
+        setTimeout(drawWheel, 50);
     }
 
     function claimQuest(id, reward) {
         if(!state.doneQuests.includes(id)) {
             state.score += reward; state.doneQuests.push(id);
-            update(); save(); showPush("💰 Нагороду отримано!");
+            saveLocal(); update(); syncCloud(); 
+            showPush(`💰 Квест виконано: +${reward.toLocaleString()}!`);
+            try { tg.HapticFeedback.notificationOccurred('success'); } catch(e){}
         }
+    }
+
+    function activatePromo() {
+        const input = document.getElementById('promo-input').value.trim().toUpperCase();
+        const status = document.getElementById('promo-status');
+        if(!input) return;
+        
+        if(input === 'RACCOON') {
+            if(state.usedPromos.includes(input)) {
+                status.style.color = "var(--crit)"; status.innerText = "❌ Цей код вже використано";
+            } else {
+                state.score += 100000; state.usedPromos.push(input);
+                status.style.color = "#4ade80"; status.innerText = "✅ Успіх! +100,000 монет";
+                saveLocal(); update(); syncCloud(); showPush(`🎁 Промокод активовано!`);
+                setTimeout(() => closeModal('promo-modal'), 1500);
+            }
+        } else {
+            status.style.color = "var(--crit)"; status.innerText = "❌ Невірний код";
+        }
+    }
+
+    async function loadFriends() {
+        const box = document.getElementById('friends-list');
+        box.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:20px;">Завантаження...</p>`;
+        try {
+            const { data } = await db.from('players').select('username').eq('ref_by', userId);
+            if (data && data.length > 0) {
+                box.innerHTML = data.map(f => `
+                    <div class="card" style="display:flex; align-items:center; gap:15px; padding:15px;">
+                        <div style="width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, var(--yellow), var(--gold)); color:#000; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:18px;">
+                            ${f.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div style="flex:1;">
+                            <b style="font-size:16px;">${f.username}</b>
+                            <div style="font-size:12px; opacity:0.6; margin-top:2px;">Бонус отримано</div>
+                        </div>
+                        <div style="color:var(--yellow); font-weight:800;">+10K</div>
+                    </div>
+                `).join('');
+            } else { box.innerHTML = `<p style="text-align:center; opacity:0.4; margin-top:20px;">Ви ще нікого не запросили</p>`; }
+        } catch (e) { box.innerHTML = `<p style="text-align:center; color:var(--crit); opacity:0.6; margin-top:20px;">Помилка зв'язку</p>`; }
     }
 
     async function openTop() {
         openModal('top-modal');
         const box = document.getElementById('top-content');
-        box.innerHTML = "Завантаження...";
+        box.innerHTML = "<p style='text-align:center; opacity:0.5;'>Завантаження рейтингу...</p>";
         try {
             const { data } = await db.from('players').select('username, score_top').order('score_top', {ascending:false}).limit(10);
-            if(data) {
+            if (!data || data.length === 0) box.innerHTML = "<p style='text-align:center;'>Тут порожньо</p>";
+            else {
                 box.innerHTML = data.map((p, i) => `
-                    <div class="card" style="display:flex; justify-content:space-between; margin-bottom:6px;">
-                        <span>#${i+1} ${p.username}</span><b>${p.score_top.toLocaleString()}</b>
+                    <div class="card" style="display:flex; justify-content:space-between; padding:15px; margin-bottom:5px; align-items:center; ${p.username === userName ? 'border:1px solid var(--yellow); background:rgba(253,224,71,0.05)' : ''}">
+                        <span style="font-size:15px; font-weight:800; opacity:${i<3?1:0.6}"><span style="margin-right:10px; color:${i===0?'#fbbf24':i===1?'#94a3b8':i===2?'#b45309':'#fff'}">#${i+1}</span> ${p.username}</span>
+                        <b style="color:var(--yellow);">${p.score_top.toLocaleString()}</b>
                     </div>
                 `).join('');
             }
-        } catch(e) { box.innerHTML = "Помилка бази даних"; }
+            document.getElementById('my-rank').innerHTML = `<div class="card" style="background:var(--yellow); color:#000; display:flex; justify-content:space-between; padding:15px;"><span>Твій рекорд:</span> <b>${Math.floor(state.score).toLocaleString()}</b></div>`;
+        } catch(e) { box.innerHTML = "<p style='text-align:center; color:var(--crit);'>Помилка завантаження</p>"; }
     }
-
-    function checkPromo() {
-        const c = document.getElementById('promo-input').value.toUpperCase();
-        if(state.usedPromos.includes(c)) return showPush("❌ Використано!");
-        if(c === "B3RDO$") {
-            state.score += 5000; state.usedPromos.push(c);
-            update(); save(); closeModal('promo-modal'); showPush("💎 +5,000 монет!");
-        } else showPush("❌ Невірний код");
-    }
-
-    function openBonus() { if(state.bonusLimit > 0) openModal('bonus-win'); }
-    function startBonusNow() {
-        isBonus = true; bonusCount = 0;
-        document.getElementById('b-ready').style.display='none';
-        document.getElementById('b-active').style.display='block';
-        let start = performance.now();
-        bInterval = setInterval(() => {
-            let l = Math.max(0, 7.5 - (performance.now()-start)/1000);
-            document.getElementById('b-timer').innerText = l.toFixed(1);
-            if(l <= 0) { clearInterval(bInterval); finishBonus(); }
-        }, 50);
-    }
-    function finishBonus() {
-        isBonus = false; let win = bonusCount * state.power * 10;
-        state.score += win; state.bonusLimit--;
-        closeModal('bonus-win');
-        document.getElementById('b-ready').style.display='block';
-        document.getElementById('b-active').style.display='none';
-        update(); save(); showPush(`🔥 Бонус завершено: +${win.toLocaleString()}`);
-    }
-
-    function inviteFriend() {
-        const link = `https://t.me/raccoon_coin_tap_bot/RACCOON_TAP_APP?startapp=${userId}`;
-        tg.openTelegramLink(`https://t.me/share/url?url=${link}&text=🚀 Давай майнити Raccoon Coin разом!`);
-    }
-
-    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     function nav(idx) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById(`p${idx}`).classList.add('active');
         document.querySelectorAll('.nav-item')[idx].classList.add('active');
-        document.getElementById('capsule').style.left = (idx*20) + "%";
-        update();
+        document.getElementById('capsule').style.left = `calc(${idx * 20}% + 6px)`;
+        if(idx === 2) loadFriends();
+        try { tg.HapticFeedback.selectionChanged(); } catch(e){}
     }
 
-    document.getElementById('coin').addEventListener('touchstart', doTap, {passive:false});
-    document.getElementById('bonus-touch').addEventListener('touchstart', (e) => {
-        e.preventDefault(); bonusCount++;
-        document.getElementById('b-clicks').innerText = `КЛІКИ: ${bonusCount}`;
-        showPop(e.touches[0].clientX, e.touches[0].clientY, "x10", true);
-    });
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function inviteFriend() {
+        const link = `https://t.me/raccoon_coin_tap_bot/RACCOON_TAP_APP?startapp=${userId}`;
+        tg.openTelegramLink(`https://t.me/share/url?url=${link}&text=🚀 Грай зі мною і отримуй бонуси!`);
+    }
 
-    setInterval(() => {
-        if(state.energy < state.max) state.energy = Math.min(state.max, state.energy + 2);
-        if(state.lvls.bot > 0) state.score += state.lvls.bot;
-        update();
-    }, 1000);
-
+    document.getElementById('coin').addEventListener('touchstart', doTap, {passive: false});
     init();
     tg.expand();
 </script>
